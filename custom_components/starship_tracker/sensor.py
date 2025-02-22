@@ -1,10 +1,9 @@
-import feedparser
 import requests
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
-from .const import DOMAIN, RSS_URL, LIVE_URL
+from .const import DOMAIN, LIVE_URL, NEWS_URL
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -32,7 +31,6 @@ class StarshipLiveSensor(SensorEntity):
 
     async def async_update(self) -> None:
         """Mise à jour du sensor (statique pour l'instant)."""
-        # Pour un vrai live, on pourrait vérifier via l'API YouTube si un stream est actif.
         self._state = "Check Live Stream"
 
 class StarshipNewsSensor(SensorEntity):
@@ -49,17 +47,17 @@ class StarshipNewsSensor(SensorEntity):
         return self._state
 
     async def async_update(self) -> None:
-        """Récupère les 5 dernières actualités."""
+        """Récupère les 5 dernières actualités via NewsAPI."""
         try:
-            # Récupération du flux RSS
-            feed = await hass.async_add_executor_job(feedparser.parse, RSS_URL)
+            response = await hass.async_add_executor_job(requests.get, NEWS_URL)
+            data = response.json()
             news_list = [
-                {"title": entry.title, "link": entry.link, "published": entry.published}
-                for entry in feed.entries
-                if "starship" in entry.title.lower() or "starship" in entry.summary.lower()
-            ][:5]  # Limite à 5 résultats
+                {"title": article["title"], "link": article["url"], "published": article["publishedAt"]}
+                for article in data["articles"]
+            ][:5]  # Limite à 5
             self._attr_extra_state_attributes["news"] = news_list
             self._state = f"{len(news_list)} news items"
         except Exception as e:
             self._state = "error"
             self._attr_extra_state_attributes["news"] = []
+            _LOGGER.error(f"Erreur lors de la récupération des actualités : {e}")
