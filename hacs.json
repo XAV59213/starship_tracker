@@ -1,8 +1,5 @@
 {
   "name": "Starship Tracker",
-  "content_in_root": false,
-  "filename": null,
-  "render_readme": true,
-  "domains": ["sensor"],
-  "iot_class": ["Cloud Polling"]
+  "content_in_root": true,
+  "render_readme": true
 }
