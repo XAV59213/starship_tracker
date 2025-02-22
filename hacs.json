@@ -1,6 +1,6 @@
 {
   "name": "Starship Tracker",
-  "content_in_root": true,
+  "content_in_root": false,
   "filename": null,
   "render_readme": true,
   "domains": ["sensor"],
