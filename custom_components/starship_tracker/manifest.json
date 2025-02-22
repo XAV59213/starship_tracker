@@ -1,0 +1,9 @@
+{
+  "domain": "starship_tracker",
+  "name": "Starship Tracker",
+  "version": "1.0.0",
+  "documentation": "https://github.com/XAV59213/starship_tracker",
+  "requirements": ["feedparser==6.0.10", "requests==2.28.1"],
+  "codeowners": ["@XAV59213"],
+  "iot_class": "cloud_polling"
+}
