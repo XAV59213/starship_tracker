@@ -42,6 +42,9 @@
       },
       "last_flight": {
         "name": "Dernier vol Starship"
+      },
+      "missions": {
+        "name": "Missions Starship"
       }
     },
     "button": {

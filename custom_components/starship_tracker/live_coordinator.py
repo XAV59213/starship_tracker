@@ -32,6 +32,7 @@ class LiveStatus:
     last_check: datetime
     next_mission: dict[str, Any] | None = None
     last_flight: dict[str, Any] | None = None
+    missions: list[dict[str, Any]] | None = None
 
 
 def _mission(tile: dict[str, Any]) -> dict[str, Any]:
@@ -46,6 +47,10 @@ def _mission(tile: dict[str, Any]) -> dict[str, Any]:
         "mission_type": tile.get("missionType"),
         "url": SPACEX_LAUNCH_URL.format(link=link) if link else LIVE_URL,
         "return_site": tile.get("returnSite"),
+        # Le webcast (live / replay) est diffusé sur la page mission spacex.com
+        "video_url": SPACEX_LAUNCH_URL.format(link=link) if link else LIVE_URL,
+        "call_to_action": tile.get("callToAction"),
+        "is_live": bool(tile.get("isLive")),
     }
 
 
@@ -81,6 +86,16 @@ def _last_flight(tiles: list[dict[str, Any]]) -> dict[str, Any] | None:
     if not done:
         return None
     return _mission(max(done, key=lambda t: (t["launchDate"], t.get("launchTime") or "")))
+
+
+def _missions(tiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Toutes les missions Starship (passées + à venir), dédoublonnées, triées par date."""
+    seen: dict[Any, dict[str, Any]] = {}
+    for t in tiles:
+        if _is_starship(t):
+            seen.setdefault(t.get("link") or t.get("title"), t)
+    ordered = sorted(seen.values(), key=lambda t: (t.get("launchDate") or "9999", t.get("launchTime") or ""))
+    return [_mission(t) for t in ordered]
 
 
 def _parse(tiles: list[dict[str, Any]]) -> LiveStatus:
@@ -156,6 +171,7 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         ]
         status = _parse(tiles)
         status.last_flight = _last_flight(self._all_starship or [])
+        status.missions = _missions(tiles + (self._all_starship or []))
         self._fire_transition(status)
         self._fire_launch_soon(status)
         return status
