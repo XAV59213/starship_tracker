@@ -38,4 +38,9 @@ class StarshipTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_create_entry(title="Starship Tracker", data={CONF_API_KEY: api_key})
 
-        return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA, errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=DATA_SCHEMA,
+            errors=errors,
+            description_placeholders={"register_url": "https://newsapi.org/register"},
+        )

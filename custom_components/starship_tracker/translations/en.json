@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Starship Tracker",
-        "description": "Enter your free NewsAPI key (https://newsapi.org/register).",
+        "description": "Enter your free NewsAPI key, available at {register_url}.",
         "data": {
           "api_key": "NewsAPI key"
         }
