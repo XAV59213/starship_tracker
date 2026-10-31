@@ -22,3 +22,5 @@ TRACKED_VEHICLE: Final = "Starship"
 SCAN_INTERVAL_LIVE: Final = timedelta(minutes=5)
 EVENT_LIVE_STARTED: Final = "starship_tracker_live_started"
 EVENT_LIVE_ENDED: Final = "starship_tracker_live_ended"
+EVENT_LAUNCH_SOON: Final = "starship_tracker_launch_soon"
+LAUNCH_SOON_WINDOW: Final = timedelta(hours=1)
