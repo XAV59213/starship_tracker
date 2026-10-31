@@ -1,7 +1,7 @@
 # Starship Tracker — Wiki
 
-**FR** — Intégration Home Assistant (HACS) pour suivre Starship : live spacex.com, prochaine mission, compte à rebours, actualités. Version **1.9.0**, HA ≥ 2024.11.0.
-**EN** — Home Assistant (HACS) integration to follow Starship: spacex.com live, next mission, launch countdown, news. Version **1.9.0**, HA ≥ 2024.11.0.
+**FR** — Intégration Home Assistant (HACS) pour suivre Starship : live spacex.com, prochaine mission, compte à rebours, actualités. Version **1.10.0**, HA ≥ 2024.11.0.
+**EN** — Home Assistant (HACS) integration to follow Starship: spacex.com live, next mission, launch countdown, news. Version **1.10.0**, HA ≥ 2024.11.0.
 
 | Entité / Entity (EN) | FR | Type |
 |---|---|---|
@@ -12,6 +12,7 @@
 | Starship news | Actualités Starship | sensor |
 | Starship mission status | Statut mission Starship | sensor |
 | Last Starship flight | Dernier vol Starship | sensor |
+| Starship missions | Missions Starship | sensor (past / upcoming, video_url) |
 | Refresh | Rafraîchir | button |
 
 - Installation & configuration : voir / see [README](https://github.com/XAV59213/starship_tracker#readme)

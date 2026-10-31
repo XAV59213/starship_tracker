@@ -9,12 +9,13 @@ Intégration Home Assistant (HACS) qui expose :
 - **Compte à rebours lancement Starship** (*Starship launch countdown*, `sensor`, `device_class: timestamp`) : état = date/heure UTC du prochain lancement Starship (HA affiche « dans 3 jours »…). Attributs : `mission`, `launch_site`, `url`, `seconds_remaining`, `countdown` (ex. `3d 04h 12m`), `launched`, `last_check`. `unknown` si aucun lancement annoncé.
 - **Statut mission Starship** (*Starship mission status*, `sensor`) : `live` pendant un direct, sinon le statut SpaceX de la prochaine mission (`missionStatus`, ex. *Upcoming*, *Scrubbed*). Attributs : `mission`, `is_live`, `launch_date`, `url`, `last_check`.
 - **Dernier vol Starship** (*Last Starship flight*, `sensor`) : nom du dernier vol Starship terminé d'après <https://www.spacex.com/launches> (ex. *Starship Flight 14*). Attributs : `launch_date`, `launch_time`, `launch_time_utc`, `launch_site`, `return_site`, `mission_status`, `url`.
+- **Missions Starship** (*Starship missions*, `sensor`) : nombre de vols Starship listés sur <https://www.spacex.com/launches>. Attributs : `past` (10 derniers vols), `upcoming`, `past_count`, `upcoming_count` — chaque mission : `mission`, `launch_date`, `launch_site`, `mission_status`, `url`, `video_url` (webcast live / replay cliquable), `is_live`.
 - **Page du vaisseau Starship** (*Starship vehicle page*) : lien vers <https://www.spacex.com/vehicles/starship>, attribut `url`.
 - **Actualités Starship** (*Starship news*) : nombre d'articles récents, avec les 5 dernières actualités Starship (`title`, `link`, `published`) dans l'attribut `news`. Rafraîchi toutes les 30 minutes via [NewsAPI](https://newsapi.org).
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.9.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.10.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -88,6 +89,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.10.0** : la carte affiche les prochaines missions et les derniers vols Starship avec un lien **▶ Vidéo** cliquable (options `show_missions: true`, `missions_count: 3`).
+
 Depuis la 1.8.0, une carte Lovelace personnalisée est **livrée avec l'intégration** : aucune installation HACS séparée, aucune ressource à ajouter. Elle est chargée automatiquement dès que l'intégration est configurée (vider le cache du navigateur / de l'app après la mise à jour si elle n'apparaît pas).
 
 1. Mettre à jour Starship Tracker en 1.8.0 via HACS, redémarrer Home Assistant.
@@ -97,13 +100,22 @@ Depuis la 1.8.0, une carte Lovelace personnalisée est **livrée avec l'intégra
 type: custom:starship-tracker-card
 ```
 
-Affiche la prochaine mission façon fiche (titre « Mission (SpaceX) », fournisseur, véhicule, rampe, emplacement, date cible, compte à rebours en direct, tags), le statut live et les 5 dernières actualités. Textes en français ou anglais selon la langue de HA. Les entités sont détectées automatiquement ; options facultatives :
+Affiche la prochaine mission façon fiche (titre « Mission (SpaceX) », fournisseur, véhicule, rampe, emplacement, date cible, compte à rebours en direct, tags), le statut live et les 5 dernières actualités. Textes en français ou anglais selon la langue de HA. Les entités sont détectées automatiquement. **Toutes les options se règlent dans l’éditeur visuel** (Modifier la carte) ou en YAML :
 
 ```yaml
 type: custom:starship-tracker-card
+title: ""            # titre perso (vide = nom de la mission)
+show_details: true   # fiche mission (fournisseur, véhicule, rampe, date, tags)
+show_countdown: true # compte à rebours
+show_live: true      # bandeau live
+show_videos: true    # liens vidéo cliquables
+show_missions: true  # suivi des missions Starship
+missions_count: 3    # missions par liste
+show_upcoming: true  # prochaines missions
+show_last: true      # derniers vols
 show_news: true      # afficher les actualités
 news_count: 5        # nombre d'actualités
-# entités à forcer si besoin : live, next, countdown, status, news
+# entités à forcer si besoin : live, next, countdown, status, missions, news
 # next: sensor.starship_tracker_prochaine_mission_starship
 ```
 
@@ -175,7 +187,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.5.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.10.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 - **Starship live** (`binary_sensor`): `on` while a Starship mission is live on spacex.com (checked every 5 min, no key).
 - **Next Starship mission** (`sensor`): name of the next announced Starship mission; attributes `launch_date`, `launch_time`, `launch_site`, `mission_status`, `vehicle`, `mission_type`, `url`.
@@ -185,8 +197,9 @@ Home Assistant (HACS) integration — **version 1.5.0**, requires Home Assistant
 - Diagnostics download (NewsAPI key redacted); if NewsAPI fails at startup, live sensors keep working.
 - **Starship news** (`sensor`): latest 5 Starship articles via [NewsAPI](https://newsapi.org) (refreshed every 30 min).
 - **Last Starship flight** (`sensor`): last completed Starship flight from <https://www.spacex.com/launches> (full feed, cached 6 h); the upcoming feed stays primary, the full feed is the fallback.
+- **Starship missions** (`sensor`): number of Starship flights on <https://www.spacex.com/launches>; attributes `past` (latest 10), `upcoming`, `past_count`, `upcoming_count` — each with `mission`, `launch_date`, `launch_site`, `mission_status`, `url`, `video_url` (clickable live / replay webcast), `is_live`.
 - **Starship mission status** (`sensor`): `live` during a stream, otherwise SpaceX `missionStatus` of the next mission.
 - Events `starship_tracker_live_started` / `starship_tracker_live_ended`, and `starship_tracker_launch_soon` (once, within 1 h of launch).
 - Install: HACS → custom repository `https://github.com/XAV59213/starship_tracker` (Integration), then add **Starship Tracker** and paste a NewsAPI key (changeable via *Configure*).
-- Custom card bundled with the integration: `type: custom:starship-tracker-card`.
+- Custom card bundled with the integration: `type: custom:starship-tracker-card` — shows upcoming missions and latest flights with a clickable **▶ Video** link (`show_missions`, `missions_count`).
 - Example native Lovelace card: `docs/lovelace-card.yaml` (see section above). Brand icons: `custom_components/starship_tracker/brand/`.

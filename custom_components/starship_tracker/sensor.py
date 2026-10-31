@@ -42,6 +42,7 @@ async def async_setup_entry(
             StarshipCountdownSensor(entry.runtime_data.live, entry),
             StarshipMissionStatusSensor(entry.runtime_data.live, entry),
             StarshipLastFlightSensor(entry.runtime_data.live, entry),
+            StarshipMissionsSensor(entry.runtime_data.live, entry),
         ]
     )
 
@@ -180,6 +181,7 @@ class StarshipMissionStatusSensor(CoordinatorEntity[StarshipLiveCoordinator], Se
             "is_live": data.is_live,
             "launch_date": nxt.get("launch_date"),
             "url": nxt.get("url"),
+            "video_url": nxt.get("video_url"),
             "last_check": data.last_check.isoformat(),
         }
 
@@ -207,3 +209,42 @@ class StarshipLastFlightSensor(CoordinatorEntity[StarshipLiveCoordinator], Senso
         launch = launch_datetime(last)
         return {**last, "launch_time_utc": launch.isoformat() if launch else None}
 
+
+
+class StarshipMissionsSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorEntity):
+    """Suivi des missions Starship : nombre de vols + listes passés / à venir en attributs."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "missions"
+    _attr_icon = "mdi:rocket-launch"
+    _attr_native_unit_of_measurement = "missions"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_starship_missions"
+        self._attr_device_info = _device_info(entry)
+
+    def _split(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        past: list[dict[str, Any]] = []
+        upcoming: list[dict[str, Any]] = []
+        for m in self.coordinator.data.missions or []:
+            item = {k: m.get(k) for k in ("mission", "launch_date", "launch_time", "launch_site", "mission_status", "url", "video_url", "call_to_action", "is_live")}
+            (past if m.get("mission_status") == "final" else upcoming).append(item)
+        return past, upcoming
+
+    @property
+    def native_value(self) -> int:
+        return len(self.coordinator.data.missions or [])
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        past, upcoming = self._split()
+        return {
+            "past_count": len(past),
+            "upcoming_count": len(upcoming),
+            # Les 10 derniers vols (plus récent d'abord) pour limiter la taille de l'état
+            "past": list(reversed(past))[:10],
+            "upcoming": upcoming,
+            "source": "https://www.spacex.com/launches",
+        }
