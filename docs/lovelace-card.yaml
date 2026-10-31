@@ -1,0 +1,38 @@
+# Starship Tracker — exemple de carte Lovelace / example Lovelace card
+# Cartes natives uniquement (aucune carte custom requise).
+# Adaptez les entity_id si votre HA est en français (voir README).
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      ## 🚀 Starship Tracker
+      {% if is_state('binary_sensor.starship_tracker_starship_live', 'on') %}
+      🔴 **EN DIRECT / LIVE** — [Regarder / Watch]({{ state_attr('sensor.starship_tracker_next_starship_mission', 'url') or 'https://www.spacex.com/vehicles/starship' }})
+      {% else %}
+      ⚪ Pas de live en cours / No live stream
+      {% endif %}
+  - type: entities
+    entities:
+      - entity: binary_sensor.starship_tracker_starship_live
+      - entity: sensor.starship_tracker_next_starship_mission
+      - entity: sensor.starship_tracker_starship_launch_countdown
+        format: relative
+      - type: attribute
+        entity: sensor.starship_tracker_starship_launch_countdown
+        attribute: countdown
+        name: T-
+      - type: attribute
+        entity: sensor.starship_tracker_next_starship_mission
+        attribute: launch_site
+        name: Site
+  - type: markdown
+    title: Actualités / News
+    content: |
+      {% set news = state_attr('sensor.starship_tracker_starship_news', 'news') or [] %}
+      {% for a in news[:5] %}
+      - [{{ a.title }}]({{ a.url }})
+      {% else %}
+      Aucune actualité / No news
+      {% endfor %}
+      
+      [Page Starship sur spacex.com](https://www.spacex.com/vehicles/starship)

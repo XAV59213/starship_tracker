@@ -70,3 +70,53 @@ Home Assistant (2026.3+) les utilise directement pour les intégrations personna
 
 Integration icons and logos live in `custom_components/starship_tracker/brand/` (transparent PNGs),
 used directly by Home Assistant for custom integrations.
+
+## Carte Lovelace / Lovelace card
+
+Exemple prêt à coller (Tableau de bord → Modifier → Ajouter une carte → Manuel), aussi dans [`docs/lovelace-card.yaml`](docs/lovelace-card.yaml).
+Affiche le statut live, la prochaine mission, le compte à rebours, le site et les 5 dernières actualités. Cartes natives uniquement.
+
+Ready-to-paste example (Dashboard → Edit → Add card → Manual), also in `docs/lovelace-card.yaml`. Native cards only.
+
+> Les `entity_id` ci-dessous correspondent à une installation en anglais. En français ils peuvent être par ex. `sensor.starship_tracker_prochaine_mission_starship` — vérifiez dans Paramètres → Entités.
+
+```yaml
+# Starship Tracker — exemple de carte Lovelace / example Lovelace card
+# Cartes natives uniquement (aucune carte custom requise).
+# Adaptez les entity_id si votre HA est en français (voir README).
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      ## 🚀 Starship Tracker
+      {% if is_state('binary_sensor.starship_tracker_starship_live', 'on') %}
+      🔴 **EN DIRECT / LIVE** — [Regarder / Watch]({{ state_attr('sensor.starship_tracker_next_starship_mission', 'url') or 'https://www.spacex.com/vehicles/starship' }})
+      {% else %}
+      ⚪ Pas de live en cours / No live stream
+      {% endif %}
+  - type: entities
+    entities:
+      - entity: binary_sensor.starship_tracker_starship_live
+      - entity: sensor.starship_tracker_next_starship_mission
+      - entity: sensor.starship_tracker_starship_launch_countdown
+        format: relative
+      - type: attribute
+        entity: sensor.starship_tracker_starship_launch_countdown
+        attribute: countdown
+        name: T-
+      - type: attribute
+        entity: sensor.starship_tracker_next_starship_mission
+        attribute: launch_site
+        name: Site
+  - type: markdown
+    title: Actualités / News
+    content: |
+      {% set news = state_attr('sensor.starship_tracker_starship_news', 'news') or [] %}
+      {% for a in news[:5] %}
+      - [{{ a.title }}]({{ a.url }})
+      {% else %}
+      Aucune actualité / No news
+      {% endfor %}
+      
+      [Page Starship sur spacex.com](https://www.spacex.com/vehicles/starship)
+```
