@@ -37,6 +37,11 @@
       "countdown": {
         "name": "Starship launch countdown"
       }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
     }
   },
   "options": {
