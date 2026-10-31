@@ -55,14 +55,14 @@ def _parse(tiles: list[dict[str, Any]]) -> LiveStatus:
     next_mission = _mission(starship[0]) if starship else None
     if tile is None:
         return LiveStatus(False, LIVE_URL, None, None, None, None, now, None)
-    link = tile.get("link")
+    current = _mission(tile)
     return LiveStatus(
         is_live=bool(tile.get("isLive")),
-        url=SPACEX_LAUNCH_URL.format(link=link) if link else LIVE_URL,
-        mission=tile.get("title"),
-        mission_status=tile.get("missionStatus"),
-        launch_date=tile.get("launchDate"),
-        launch_site=tile.get("launchSite"),
+        url=current["url"],
+        mission=current["mission"],
+        mission_status=current["mission_status"],
+        launch_date=current["launch_date"],
+        launch_site=current["launch_site"],
         last_check=now,
         next_mission=next_mission,
     )
