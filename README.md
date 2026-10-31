@@ -113,7 +113,7 @@ cards:
     content: |
       {% set news = state_attr('sensor.starship_tracker_starship_news', 'news') or [] %}
       {% for a in news[:5] %}
-      - [{{ a.title }}]({{ a.url }})
+      - [{{ a.title }}]({{ a.link }})
       {% else %}
       Aucune actualité / No news
       {% endfor %}
