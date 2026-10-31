@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import StarshipConfigEntry
 from .const import DOMAIN, LIVE_URL
 from .coordinator import StarshipNewsCoordinator
+from .live_coordinator import StarshipLiveCoordinator
 
 
 def _device_info(entry: StarshipConfigEntry) -> DeviceInfo:
@@ -29,15 +30,21 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Ajoute les sensors live et news."""
-    coordinator = entry.runtime_data
-    async_add_entities([StarshipLiveSensor(entry), StarshipNewsSensor(coordinator, entry)])
+    coordinator = entry.runtime_data.news
+    async_add_entities(
+        [
+            StarshipLiveSensor(entry),
+            StarshipNewsSensor(coordinator, entry),
+            StarshipNextMissionSensor(entry.runtime_data.live, entry),
+        ]
+    )
 
 
 class StarshipLiveSensor(SensorEntity):
-    """Lien vers le flux en direct SpaceX (pas de détection de diffusion)."""
+    """Lien vers la page Starship de spacex.com (état live : voir binary_sensor)."""
 
     _attr_has_entity_name = True
-    _attr_name = "Live stream"
+    _attr_name = "Vehicle page"
     _attr_icon = "mdi:rocket-launch"
     _attr_should_poll = False
 
@@ -69,3 +76,26 @@ class StarshipNewsSensor(CoordinatorEntity[StarshipNewsCoordinator], SensorEntit
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {"news": self.coordinator.data or []}
+
+
+class StarshipNextMissionSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorEntity):
+    """Prochaine mission Starship annoncée sur spacex.com (même flux que le live)."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "next_mission"
+    _attr_icon = "mdi:calendar-star"
+
+    def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_starship_next_mission"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> str | None:
+        nxt = self.coordinator.data.next_mission
+        return nxt["mission"] if nxt else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        nxt = self.coordinator.data.next_mission or {}
+        return {**nxt, "last_check": self.coordinator.data.last_check.isoformat()}

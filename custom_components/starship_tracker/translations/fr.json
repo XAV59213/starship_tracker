@@ -17,5 +17,17 @@
     "abort": {
       "already_configured": "Starship Tracker est déjà configuré"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "starship_live": {
+        "name": "Starship en direct"
+      }
+    },
+    "sensor": {
+      "next_mission": {
+        "name": "Prochaine mission Starship"
+      }
+    }
   }
 }
