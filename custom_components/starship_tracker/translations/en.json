@@ -33,6 +33,9 @@
       },
       "next_mission": {
         "name": "Next Starship mission"
+      },
+      "countdown": {
+        "name": "Starship launch countdown"
       }
     }
   },

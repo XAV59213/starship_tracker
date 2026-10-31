@@ -3,11 +3,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from datetime import datetime
+
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import StarshipConfigEntry
 from .const import DOMAIN, LIVE_URL
@@ -36,6 +39,7 @@ async def async_setup_entry(
             StarshipLiveSensor(entry),
             StarshipNewsSensor(coordinator, entry),
             StarshipNextMissionSensor(entry.runtime_data.live, entry),
+            StarshipCountdownSensor(entry.runtime_data.live, entry),
         ]
     )
 
@@ -99,3 +103,69 @@ class StarshipNextMissionSensor(CoordinatorEntity[StarshipLiveCoordinator], Sens
     def extra_state_attributes(self) -> dict[str, Any]:
         nxt = self.coordinator.data.next_mission or {}
         return {**nxt, "last_check": self.coordinator.data.last_check.isoformat()}
+
+
+def _launch_datetime(mission: dict[str, Any] | None) -> datetime | None:
+    """Combine launch_date / launch_time du flux SpaceX en datetime UTC."""
+    if not mission or not mission.get("launch_date"):
+        return None
+    date = str(mission["launch_date"])
+    time = mission.get("launch_time")
+    candidates = [date]
+    if time and "T" not in date:
+        candidates.insert(0, f"{date[:10]}T{time}")
+    for raw in candidates:
+        parsed = dt_util.parse_datetime(raw)
+        if parsed is None:
+            day = dt_util.parse_date(raw[:10])
+            if day is None:
+                continue
+            parsed = datetime(day.year, day.month, day.day)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt_util.UTC)
+        return dt_util.as_utc(parsed)
+    return None
+
+
+def _human(seconds: int) -> str:
+    days, rem = divmod(max(seconds, 0), 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes = rem // 60
+    return f"{days}d {hours:02d}h {minutes:02d}m"
+
+
+class StarshipCountdownSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorEntity):
+    """Compte à rebours jusqu'au prochain lancement Starship (timestamp)."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "countdown"
+    _attr_icon = "mdi:timer-sand"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_starship_countdown"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> datetime | None:
+        return _launch_datetime(self.coordinator.data.next_mission)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        nxt = self.coordinator.data.next_mission or {}
+        launch = _launch_datetime(nxt)
+        attrs: dict[str, Any] = {
+            "mission": nxt.get("mission"),
+            "launch_site": nxt.get("launch_site"),
+            "url": nxt.get("url"),
+            "last_check": self.coordinator.data.last_check.isoformat(),
+        }
+        if launch:
+            seconds = int((launch - dt_util.utcnow()).total_seconds())
+            attrs.update(
+                seconds_remaining=max(seconds, 0),
+                countdown=_human(seconds),
+                launched=seconds <= 0,
+            )
+        return attrs
