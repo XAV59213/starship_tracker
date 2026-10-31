@@ -39,6 +39,9 @@
       },
       "mission_status": {
         "name": "Statut mission Starship"
+      },
+      "last_flight": {
+        "name": "Dernier vol Starship"
       }
     },
     "button": {

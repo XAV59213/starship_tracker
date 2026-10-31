@@ -24,3 +24,6 @@ EVENT_LIVE_STARTED: Final = "starship_tracker_live_started"
 EVENT_LIVE_ENDED: Final = "starship_tracker_live_ended"
 EVENT_LAUNCH_SOON: Final = "starship_tracker_launch_soon"
 LAUNCH_SOON_WINDOW: Final = timedelta(hours=1)
+# Flux complet de la page https://www.spacex.com/launches (passés + à venir, ~3 Mo)
+SPACEX_ALL_TILES_URL: Final = "https://content.spacex.com/api/spacex-website/launches-page-tiles"
+SCAN_INTERVAL_ALL_LAUNCHES: Final = timedelta(hours=6)
