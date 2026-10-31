@@ -136,7 +136,7 @@ news_count: 5        # nombre d'actualités
 
 ## Carte Lovelace / Lovelace card (cartes natives)
 
-Exemple prêt à coller (Tableau de bord → Modifier → Ajouter une carte → Manuel), aussi dans [`docs/lovelace-card.yaml`](docs/lovelace-card.yaml).
+Exemple prêt à coller (Tableau de bord → Modifier → Ajouter une carte → Manuel), aussi dans [`docs/lovelace-card.yaml`](https://github.com/XAV59213/starship_tracker/blob/main/docs/lovelace-card.yaml).
 Met en avant la **prochaine mission Starship** façon fiche mission (titre « Mission (SpaceX) », Provider / Vehicle / Launch Pad / Location / Target Date / Countdown / Tags), puis le statut live et les 5 dernières actualités. Cartes natives uniquement.
 
 Ready-to-paste example (Dashboard → Edit → Add card → Manual), also in `docs/lovelace-card.yaml`. Native cards only.
