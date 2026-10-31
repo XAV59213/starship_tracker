@@ -9,7 +9,7 @@ Intégration Home Assistant (HACS) qui expose :
 - **Page du vaisseau Starship** (*Starship vehicle page*) : lien vers <https://www.spacex.com/vehicles/starship>, attribut `url`.
 - **Actualités Starship** (*Starship news*) : nombre d'articles récents, avec les 5 dernières actualités Starship (`title`, `link`, `published`) dans l'attribut `news`. Rafraîchi toutes les 30 minutes via [NewsAPI](https://newsapi.org).
 
-Version actuelle : **1.2.0**. Nécessite Home Assistant **2024.4.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.3.0**. Nécessite Home Assistant **2024.4.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -31,6 +31,30 @@ Les versions ≤ 1.0.3 contenaient une clé NewsAPI en clair dans `const.py`. Ce
 Choix d'un `binary_sensor` (état on/off idiomatique dans HA).
 
 La source est le site officiel SpaceX (<https://www.spacex.com/vehicles/starship> et ses pages de lancement). L'intégration lit le flux JSON public qui alimente la page des lancements du site (`content.spacex.com/api/spacex-website/launches-page-tiles/upcoming`), garde les missions dont `vehicle` vaut `Starship`, et passe à `on` si l'une d'elles a `isLive: true`. Sans live, les attributs décrivent la prochaine mission Starship annoncée, s'il y en a une.
+
+## Notifications (événements)
+
+Quand le live Starship commence, l'intégration déclenche l'événement Home Assistant `starship_tracker_live_started`, et `starship_tracker_live_ended` quand il se termine. Données : `mission`, `url`, `launch_date`, `launch_site`, `mission_status`. Aucun événement n'est émis au démarrage de Home Assistant, seulement lors d'un changement d'état.
+
+Exemple d'automatisation (remplacer `notify.mobile_app_mon_telephone` par votre service de notification) :
+
+```yaml
+automation:
+  - alias: "Starship en direct"
+    triggers:
+      - trigger: event
+        event_type: starship_tracker_live_started
+    actions:
+      - action: notify.mobile_app_mon_telephone
+        data:
+          title: "🚀 Starship en direct"
+          message: "{{ trigger.event.data.mission }} est en live sur spacex.com"
+          data:
+            url: "{{ trigger.event.data.url }}"
+            clickAction: "{{ trigger.event.data.url }}"
+```
+
+Variante sans événement : déclencher sur l'état du binary_sensor (`trigger: state`, `to: "on"`).
 
 ## Limites
 

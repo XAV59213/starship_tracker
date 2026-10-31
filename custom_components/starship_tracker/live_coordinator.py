@@ -14,7 +14,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, LIVE_URL, SCAN_INTERVAL_LIVE, SPACEX_LAUNCH_URL, SPACEX_TILES_URL, TRACKED_VEHICLE
+from .const import DOMAIN, EVENT_LIVE_ENDED, EVENT_LIVE_STARTED, LIVE_URL, SCAN_INTERVAL_LIVE, SPACEX_LAUNCH_URL, SPACEX_TILES_URL, TRACKED_VEHICLE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,11 +86,33 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
     def __init__(self, hass: HomeAssistant) -> None:
         super().__init__(hass, _LOGGER, name=f"{DOMAIN}_live", update_interval=SCAN_INTERVAL_LIVE)
         self._session = async_get_clientsession(hass)
+        # None = premier refresh : pas d'événement au démarrage de HA
+        self._was_live: bool | None = None
 
     async def _async_update_data(self) -> LiveStatus:
         try:
-            return await async_fetch_live(self._session)
+            status = await async_fetch_live(self._session)
         except (aiohttp.ClientError, TimeoutError) as err:
             raise UpdateFailed(f"Erreur réseau spacex.com : {err}") from err
         except ValueError as err:
             raise UpdateFailed(f"Réponse spacex.com invalide : {err}") from err
+        self._fire_transition(status)
+        return status
+
+    def _fire_transition(self, status: LiveStatus) -> None:
+        """Déclenche un événement HA quand le live commence ou se termine."""
+        previous, self._was_live = self._was_live, status.is_live
+        if previous is None or previous == status.is_live:
+            return
+        event = EVENT_LIVE_STARTED if status.is_live else EVENT_LIVE_ENDED
+        self.hass.bus.async_fire(
+            event,
+            {
+                "mission": status.mission,
+                "url": status.url,
+                "launch_date": status.launch_date,
+                "launch_site": status.launch_site,
+                "mission_status": status.mission_status,
+            },
+        )
+        _LOGGER.info("%s : %s", event, status.mission)
