@@ -20,3 +20,5 @@ SPACEX_TILES_URL: Final = "https://content.spacex.com/api/spacex-website/launche
 SPACEX_LAUNCH_URL: Final = "https://www.spacex.com/launches/{link}"
 TRACKED_VEHICLE: Final = "Starship"
 SCAN_INTERVAL_LIVE: Final = timedelta(minutes=5)
+EVENT_LIVE_STARTED: Final = "starship_tracker_live_started"
+EVENT_LIVE_ENDED: Final = "starship_tracker_live_ended"
