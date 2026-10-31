@@ -44,7 +44,7 @@ class StarshipLiveSensor(SensorEntity):
     """Lien vers la page Starship de spacex.com (état live : voir binary_sensor)."""
 
     _attr_has_entity_name = True
-    _attr_name = "Vehicle page"
+    _attr_translation_key = "vehicle_page"
     _attr_icon = "mdi:rocket-launch"
     _attr_should_poll = False
 
@@ -59,7 +59,7 @@ class StarshipNewsSensor(CoordinatorEntity[StarshipNewsCoordinator], SensorEntit
     """Nombre d'articles récents + les 5 derniers en attributs."""
 
     _attr_has_entity_name = True
-    _attr_name = "News"
+    _attr_translation_key = "news"
     _attr_icon = "mdi:newspaper"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "articles"
