@@ -15,7 +15,7 @@ from homeassistant.util import dt as dt_util
 from . import StarshipConfigEntry
 from .const import DOMAIN, LIVE_URL
 from .coordinator import StarshipNewsCoordinator
-from .live_coordinator import StarshipLiveCoordinator
+from .live_coordinator import StarshipLiveCoordinator, launch_datetime
 
 
 def _device_info(entry: StarshipConfigEntry) -> DeviceInfo:
@@ -40,6 +40,7 @@ async def async_setup_entry(
             StarshipNewsSensor(coordinator, entry),
             StarshipNextMissionSensor(entry.runtime_data.live, entry),
             StarshipCountdownSensor(entry.runtime_data.live, entry),
+            StarshipMissionStatusSensor(entry.runtime_data.live, entry),
         ]
     )
 
@@ -105,28 +106,6 @@ class StarshipNextMissionSensor(CoordinatorEntity[StarshipLiveCoordinator], Sens
         return {**nxt, "last_check": self.coordinator.data.last_check.isoformat()}
 
 
-def _launch_datetime(mission: dict[str, Any] | None) -> datetime | None:
-    """Combine launch_date / launch_time du flux SpaceX en datetime UTC."""
-    if not mission or not mission.get("launch_date"):
-        return None
-    date = str(mission["launch_date"])
-    time = mission.get("launch_time")
-    candidates = [date]
-    if time and "T" not in date:
-        candidates.insert(0, f"{date[:10]}T{time}")
-    for raw in candidates:
-        parsed = dt_util.parse_datetime(raw)
-        if parsed is None:
-            day = dt_util.parse_date(raw[:10])
-            if day is None:
-                continue
-            parsed = datetime(day.year, day.month, day.day)
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=dt_util.UTC)
-        return dt_util.as_utc(parsed)
-    return None
-
-
 def _human(seconds: int) -> str:
     days, rem = divmod(max(seconds, 0), 86400)
     hours, rem = divmod(rem, 3600)
@@ -149,12 +128,12 @@ class StarshipCountdownSensor(CoordinatorEntity[StarshipLiveCoordinator], Sensor
 
     @property
     def native_value(self) -> datetime | None:
-        return _launch_datetime(self.coordinator.data.next_mission)
+        return launch_datetime(self.coordinator.data.next_mission)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         nxt = self.coordinator.data.next_mission or {}
-        launch = _launch_datetime(nxt)
+        launch = launch_datetime(nxt)
         attrs: dict[str, Any] = {
             "mission": nxt.get("mission"),
             "launch_site": nxt.get("launch_site"),
@@ -169,3 +148,37 @@ class StarshipCountdownSensor(CoordinatorEntity[StarshipLiveCoordinator], Sensor
                 launched=seconds <= 0,
             )
         return attrs
+
+
+class StarshipMissionStatusSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorEntity):
+    """Statut de la prochaine mission Starship (missionStatus du flux SpaceX)."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "mission_status"
+    _attr_icon = "mdi:rocket"
+
+    def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_starship_mission_status"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> str | None:
+        data = self.coordinator.data
+        if data.is_live:
+            return "live"
+        nxt = data.next_mission
+        return (nxt or {}).get("mission_status") or None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        nxt = data.next_mission or {}
+        return {
+            "mission": nxt.get("mission"),
+            "is_live": data.is_live,
+            "launch_date": nxt.get("launch_date"),
+            "url": nxt.get("url"),
+            "last_check": data.last_check.isoformat(),
+        }
+

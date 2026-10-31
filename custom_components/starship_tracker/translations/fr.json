@@ -36,6 +36,9 @@
       },
       "countdown": {
         "name": "Compte à rebours lancement Starship"
+      },
+      "mission_status": {
+        "name": "Statut mission Starship"
       }
     },
     "button": {

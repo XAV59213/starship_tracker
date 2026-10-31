@@ -36,6 +36,9 @@
       },
       "countdown": {
         "name": "Starship launch countdown"
+      },
+      "mission_status": {
+        "name": "Starship mission status"
       }
     },
     "button": {
