@@ -33,4 +33,8 @@ async def async_get_config_entry_diagnostics(
             "last_exception": repr(data.news.last_exception) if data.news.last_exception else None,
             "articles": data.news.data,
         },
+        "stats": {
+            "last_update_success": data.stats.last_update_success,
+            "data": data.stats.data,
+        },
     }

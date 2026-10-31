@@ -14,6 +14,7 @@ from homeassistant.loader import async_get_integration
 from .const import DOMAIN
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator
+from .stats_coordinator import SpaceXStatsCoordinator
 
 CARD_FILE = "starship-tracker-card.js"
 CARD_URL = f"/{DOMAIN}/{CARD_FILE}"
@@ -27,6 +28,7 @@ class StarshipData:
 
     news: StarshipNewsCoordinator
     live: StarshipLiveCoordinator
+    stats: SpaceXStatsCoordinator
 
 
 type StarshipConfigEntry = ConfigEntry[StarshipData]
@@ -52,7 +54,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> 
     # NewsAPI optionnel au démarrage : en cas d'échec (clé, quota, réseau) le live
     # continue et le sensor actualités reste indisponible jusqu'au prochain essai.
     await news.async_refresh()
-    entry.runtime_data = StarshipData(news=news, live=live)
+    # Compteurs SpaceX optionnels : un échec ne bloque pas l'intégration.
+    stats = SpaceXStatsCoordinator(hass)
+    await stats.async_refresh()
+    entry.runtime_data = StarshipData(news=news, live=live, stats=stats)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

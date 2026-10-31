@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.10.0";
+const CARD_VERSION = "1.11.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -8,6 +8,9 @@ const KEYS = {
   status: ["sensor", "mission_status", "sensor.starship_tracker_starship_mission_status"],
   missions: ["sensor", "missions", "sensor.starship_tracker_starship_missions"],
   news: ["sensor", "news", "sensor.starship_tracker_starship_news"],
+  total_launches: ["sensor", "total_launches", "sensor.starship_tracker_spacex_completed_missions"],
+  total_landings: ["sensor", "total_landings", "sensor.starship_tracker_spacex_total_landings"],
+  total_reflights: ["sensor", "total_reflights", "sensor.starship_tracker_spacex_total_reflights"],
 };
 
 const esc = (v) =>
@@ -18,7 +21,7 @@ const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : null);
 const DEFAULTS = {
   show_details: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_news: true, news_count: 5,
+  show_news: true, news_count: 5, show_stats: true,
 };
 
 const LABELS = {
@@ -33,6 +36,9 @@ const LABELS = {
   show_last: "Derniers vols / Latest flights",
   show_news: "Actualités / News",
   news_count: "Nb actualités / News count",
+  show_stats: "Compteurs SpaceX / SpaceX counters",
+  total_launches: "Missions terminées / Completed missions",
+  total_landings: "Atterrissages / Landings", total_reflights: "Réutilisations / Reflights",
   next: "Prochaine mission", countdown: "Countdown", status: "Statut mission",
   missions: "Missions", news: "News", live: "Live",
 };
@@ -55,6 +61,7 @@ class StarshipTrackerCard extends HTMLElement {
             b("show_details"), b("show_countdown"), b("show_live"), b("show_videos"),
           ] },
         ] },
+        { type: "expandable", name: "", title: "Compteurs SpaceX / SpaceX counters", flatten: true, schema: [b("show_stats")] },
         { type: "expandable", name: "", title: "Missions", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [
             b("show_missions"), num("missions_count", 20), b("show_upcoming"), b("show_last"),
@@ -66,6 +73,7 @@ class StarshipTrackerCard extends HTMLElement {
         { type: "expandable", name: "", title: "Entités (optionnel) / Entities (optional)", flatten: true, schema: [
           ent("next", "sensor"), ent("countdown", "sensor"), ent("status", "sensor"),
           ent("missions", "sensor"), ent("news", "sensor"), ent("live", "binary_sensor"),
+          ent("total_launches", "sensor"), ent("total_landings", "sensor"), ent("total_reflights", "sensor"),
         ] },
       ],
       computeLabel: (s) => LABELS[s.name] || s.name,
@@ -126,11 +134,13 @@ class StarshipTrackerCard extends HTMLElement {
       ? { provider: "Fournisseur", vehicle: "Véhicule", pad: "Rampe de lancement", location: "Emplacement", date: "Date cible",
           countdown: "Compte à rebours", tags: "Tags", live: "EN DIRECT", nolive: "Pas de live en cours", watch: "Regarder",
           news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", none: "Aucune mission annoncée",
-          upcoming: "Prochaines missions Starship", past: "Derniers vols Starship", video: "▶ Vidéo", nomission: "Aucune" }
+          upcoming: "Prochaines missions Starship", past: "Derniers vols Starship", video: "▶ Vidéo", nomission: "Aucune",
+          s1: "Missions terminées", s2: "Atterrissages totaux", s3: "Réutilisations totales" }
       : { provider: "Provider", vehicle: "Vehicle", pad: "Launch Pad", location: "Location", date: "Target Date",
           countdown: "Countdown", tags: "Tags", live: "LIVE", nolive: "No live stream", watch: "Watch",
           news: "Starship news", nonews: "No news", details: "Details", none: "No mission announced",
-          upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None" };
+          upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None",
+          s1: "Completed missions", s2: "Total landings", s3: "Total reflights" };
 
     const C = this._config;
     const next = this._state("next");
@@ -171,6 +181,16 @@ class StarshipTrackerCard extends HTMLElement {
       ? (C.show_upcoming ? `<h3>${L.upcoming}</h3><ul>${mList(ma.upcoming)}</ul>` : "")
         + (C.show_last ? `<h3>${L.past}</h3><ul>${mList(ma.past)}</ul>` : "") : "";
     const vurl = safeUrl(a.video_url) || url;
+    const statVal = (k) => {
+      const st = this._state(k);
+      const v = Number(st?.state);
+      return st && Number.isFinite(v) ? v.toLocaleString(lang) : "—";
+    };
+    const statsHtml = C.show_stats && this._state("total_launches")
+      ? `<a class="stats" href="https://www.spacex.com/launches" target="_blank" rel="noopener">
+          ${[["total_launches", L.s1], ["total_landings", L.s2], ["total_reflights", L.s3]]
+            .map(([k, l]) => `<div class="stat"><div class="sv">${esc(statVal(k))}</div><div class="sl">${esc(l)}</div></div>`).join("")}
+        </a>` : "";
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -187,6 +207,10 @@ class StarshipTrackerCard extends HTMLElement {
         a { color: var(--primary-color); text-decoration: none; }
         .muted { color: var(--secondary-text-color); list-style: none; margin-left: -18px; }
         .cd { font-weight: 700; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 4px; color: inherit; }
+        .stat { text-align: center; padding: 8px 4px; border-radius: 8px; background: var(--secondary-background-color); }
+        .sv { font-size: 1.6em; font-weight: 700; }
+        .sl { font-size: 0.8em; color: var(--secondary-text-color); text-transform: uppercase; }
       </style>
       <ha-card>
         <div class="title">${C.title ? esc(C.title) : `${hasMission ? esc(next.state) : "TBD"} (SpaceX)`}</div>
@@ -203,6 +227,7 @@ class StarshipTrackerCard extends HTMLElement {
           ${isLive ? `🔴 ${L.live} — <a href="${esc(url)}" target="_blank" rel="noopener">${L.watch}</a>`
                    : `⚪ ${L.nolive} — <a href="https://www.spacex.com/vehicles/starship" target="_blank" rel="noopener">spacex.com</a>`}
         </div>` : ""}
+        ${statsHtml}
         ${missionsHtml}
         ${C.show_news ? `<h3>${L.news}</h3><ul>${newsHtml}</ul>` : ""}
       </ha-card>`;

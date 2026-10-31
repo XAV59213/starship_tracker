@@ -27,3 +27,6 @@ LAUNCH_SOON_WINDOW: Final = timedelta(hours=1)
 # Flux complet de la page https://www.spacex.com/launches (passés + à venir, ~3 Mo)
 SPACEX_ALL_TILES_URL: Final = "https://content.spacex.com/api/spacex-website/launches-page-tiles"
 SCAN_INTERVAL_ALL_LAUNCHES: Final = timedelta(hours=6)
+# Compteurs globaux SpaceX affichés sur https://www.spacex.com/launches
+SPACEX_STATS_URL: Final = "https://content.spacex.com/api/spacex-website/launches-page-stats"
+SCAN_INTERVAL_STATS: Final = timedelta(hours=1)
