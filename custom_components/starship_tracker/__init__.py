@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON]
 
 
 @dataclass
@@ -28,8 +28,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> 
     """Crée les coordinators, premier refresh, puis charge les plateformes."""
     news = StarshipNewsCoordinator(hass, entry)
     live = StarshipLiveCoordinator(hass)
-    await news.async_config_entry_first_refresh()
     await live.async_config_entry_first_refresh()
+    # NewsAPI optionnel au démarrage : en cas d'échec (clé, quota, réseau) le live
+    # continue et le sensor actualités reste indisponible jusqu'au prochain essai.
+    await news.async_refresh()
     entry.runtime_data = StarshipData(news=news, live=live)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

@@ -10,7 +10,8 @@ Intégration Home Assistant (HACS) qui expose :
 - **Page du vaisseau Starship** (*Starship vehicle page*) : lien vers <https://www.spacex.com/vehicles/starship>, attribut `url`.
 - **Actualités Starship** (*Starship news*) : nombre d'articles récents, avec les 5 dernières actualités Starship (`title`, `link`, `published`) dans l'attribut `news`. Rafraîchi toutes les 30 minutes via [NewsAPI](https://newsapi.org).
 
-Version actuelle : **1.5.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+- **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
+Version actuelle : **1.6.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -56,6 +57,11 @@ automation:
 ```
 
 Variante sans événement : déclencher sur l'état du binary_sensor (`trigger: state`, `to: "on"`).
+
+## Diagnostics & robustesse
+
+- *Paramètres → Appareils et services → Starship Tracker → ⋮ → Télécharger les diagnostics* : état du live et des actualités, clé NewsAPI masquée (`**REDACTED**`).
+- Si NewsAPI échoue au démarrage (clé invalide, quota, réseau), l'intégration démarre quand même : le live et la prochaine mission fonctionnent, seul le sensor actualités est indisponible jusqu'au prochain rafraîchissement.
 
 ## Limites
 
@@ -143,6 +149,8 @@ Home Assistant (HACS) integration — **version 1.5.0**, requires Home Assistant
 - **Next Starship mission** (`sensor`): name of the next announced Starship mission; attributes `launch_date`, `launch_time`, `launch_site`, `mission_status`, `vehicle`, `mission_type`, `url`.
 - **Starship launch countdown** (`sensor`, `device_class: timestamp`): next launch time; attributes `seconds_remaining`, `countdown`, `launched`.
 - **Starship vehicle page** (`sensor`): link to <https://www.spacex.com/vehicles/starship>.
+- **Refresh** (`button`): forces an immediate update of SpaceX live data and news.
+- Diagnostics download (NewsAPI key redacted); if NewsAPI fails at startup, live sensors keep working.
 - **Starship news** (`sensor`): latest 5 Starship articles via [NewsAPI](https://newsapi.org) (refreshed every 30 min).
 - Events `starship_tracker_live_started` / `starship_tracker_live_ended` for automations.
 - Install: HACS → custom repository `https://github.com/XAV59213/starship_tracker` (Integration), then add **Starship Tracker** and paste a NewsAPI key (changeable via *Configure*).

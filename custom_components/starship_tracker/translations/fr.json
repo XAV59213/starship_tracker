@@ -37,6 +37,11 @@
       "countdown": {
         "name": "Compte à rebours lancement Starship"
       }
+    },
+    "button": {
+      "refresh": {
+        "name": "Rafraîchir"
+      }
     }
   },
   "options": {
