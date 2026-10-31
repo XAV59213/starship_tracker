@@ -25,6 +25,12 @@
       }
     },
     "sensor": {
+      "vehicle_page": {
+        "name": "Starship vehicle page"
+      },
+      "news": {
+        "name": "Starship news"
+      },
       "next_mission": {
         "name": "Next Starship mission"
       }

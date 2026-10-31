@@ -25,6 +25,12 @@
       }
     },
     "sensor": {
+      "vehicle_page": {
+        "name": "Page du vaisseau Starship"
+      },
+      "news": {
+        "name": "Actualités Starship"
+      },
       "next_mission": {
         "name": "Prochaine mission Starship"
       }
