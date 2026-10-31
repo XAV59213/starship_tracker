@@ -34,10 +34,10 @@ async def async_setup_entry(
 
 
 class StarshipLiveSensor(SensorEntity):
-    """Lien vers le compte X SpaceX (état live : voir binary_sensor)."""
+    """Lien vers la page Starship de spacex.com (état live : voir binary_sensor)."""
 
     _attr_has_entity_name = True
-    _attr_name = "Live stream"
+    _attr_name = "Vehicle page"
     _attr_icon = "mdi:rocket-launch"
     _attr_should_poll = False
 
