@@ -6,10 +6,11 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Starship en direct** (*Starship live*, `binary_sensor`) : `on` quand une mission Starship est en direct sur spacex.com, `off` sinon. Attributs : `url` (page de la mission, où se trouve le live), `vehicle_url`, `mission`, `mission_status`, `launch_date`, `launch_site`, `last_check`. Vérifié toutes les 5 minutes, sans clé.
 - **Prochaine mission Starship** (*Next Starship mission*, `sensor`) : état = nom de la prochaine mission Starship annoncée (vide/`unknown` s'il n'y en a pas). Attributs : `mission`, `launch_date`, `launch_time`, `launch_site`, `mission_status`, `vehicle`, `mission_type`, `url`, `last_check`. Même flux et même rafraîchissement (5 min) que le binary_sensor live.
+- **Compte à rebours lancement Starship** (*Starship launch countdown*, `sensor`, `device_class: timestamp`) : état = date/heure UTC du prochain lancement Starship (HA affiche « dans 3 jours »…). Attributs : `mission`, `launch_site`, `url`, `seconds_remaining`, `countdown` (ex. `3d 04h 12m`), `launched`, `last_check`. `unknown` si aucun lancement annoncé.
 - **Page du vaisseau Starship** (*Starship vehicle page*) : lien vers <https://www.spacex.com/vehicles/starship>, attribut `url`.
 - **Actualités Starship** (*Starship news*) : nombre d'articles récents, avec les 5 dernières actualités Starship (`title`, `link`, `published`) dans l'attribut `news`. Rafraîchi toutes les 30 minutes via [NewsAPI](https://newsapi.org).
 
-Version actuelle : **1.4.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.5.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
