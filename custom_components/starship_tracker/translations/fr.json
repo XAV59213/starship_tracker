@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Starship Tracker",
+        "description": "Saisissez votre clé NewsAPI gratuite (https://newsapi.org/register).",
+        "data": {
+          "api_key": "Clé NewsAPI"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clé API invalide",
+      "cannot_connect": "Impossible de joindre NewsAPI",
+      "unknown": "Erreur inattendue"
+    },
+    "abort": {
+      "already_configured": "Starship Tracker est déjà configuré"
+    }
+  }
+}
