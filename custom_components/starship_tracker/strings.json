@@ -23,6 +23,11 @@
       "starship_live": {
         "name": "Starship live"
       }
+    },
+    "sensor": {
+      "next_mission": {
+        "name": "Next Starship mission"
+      }
     }
   }
 }

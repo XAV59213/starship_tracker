@@ -30,6 +30,21 @@ class LiveStatus:
     launch_date: str | None
     launch_site: str | None
     last_check: datetime
+    next_mission: dict[str, Any] | None = None
+
+
+def _mission(tile: dict[str, Any]) -> dict[str, Any]:
+    link = tile.get("link")
+    return {
+        "mission": tile.get("title"),
+        "launch_date": tile.get("launchDate"),
+        "launch_time": tile.get("launchTime"),
+        "launch_site": tile.get("launchSite"),
+        "mission_status": tile.get("missionStatus"),
+        "vehicle": tile.get("vehicle"),
+        "mission_type": tile.get("missionType"),
+        "url": SPACEX_LAUNCH_URL.format(link=link) if link else LIVE_URL,
+    }
 
 
 def _parse(tiles: list[dict[str, Any]]) -> LiveStatus:
@@ -37,8 +52,9 @@ def _parse(tiles: list[dict[str, Any]]) -> LiveStatus:
     starship = [t for t in tiles if (t.get("vehicle") or "").lower() == TRACKED_VEHICLE.lower()]
     # Priorité à une mission en live, sinon la prochaine mission Starship
     tile = next((t for t in starship if t.get("isLive")), starship[0] if starship else None)
+    next_mission = _mission(starship[0]) if starship else None
     if tile is None:
-        return LiveStatus(False, LIVE_URL, None, None, None, None, now)
+        return LiveStatus(False, LIVE_URL, None, None, None, None, now, None)
     link = tile.get("link")
     return LiveStatus(
         is_live=bool(tile.get("isLive")),
@@ -48,6 +64,7 @@ def _parse(tiles: list[dict[str, Any]]) -> LiveStatus:
         launch_date=tile.get("launchDate"),
         launch_site=tile.get("launchSite"),
         last_check=now,
+        next_mission=next_mission,
     )
 
 

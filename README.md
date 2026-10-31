@@ -5,6 +5,7 @@
 Intégration Home Assistant (HACS) qui expose :
 
 - **Starship live** (`binary_sensor`) : `on` quand une mission Starship est en direct sur spacex.com, `off` sinon. Attributs : `url` (page de la mission, où se trouve le live), `vehicle_url`, `mission`, `mission_status`, `launch_date`, `launch_site`, `last_check`. Vérifié toutes les 5 minutes, sans clé.
+- **Prochaine mission Starship** (`sensor`) : état = nom de la prochaine mission Starship annoncée (vide/`unknown` s'il n'y en a pas). Attributs : `mission`, `launch_date`, `launch_time`, `launch_site`, `mission_status`, `vehicle`, `mission_type`, `url`, `last_check`. Même flux et même rafraîchissement (5 min) que le binary_sensor live.
 - **Starship Vehicle page** : lien vers <https://www.spacex.com/vehicles/starship>, attribut `url`.
 - **Starship News** : nombre d'articles récents, avec les 5 dernières actualités Starship (`title`, `link`, `published`) dans l'attribut `news`. Rafraîchi toutes les 30 minutes via [NewsAPI](https://newsapi.org).
 
