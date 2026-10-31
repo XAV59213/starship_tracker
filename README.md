@@ -13,7 +13,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.7.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.8.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -79,7 +79,30 @@ Home Assistant (2026.3+) les utilise directement pour les intégrations personna
 Integration icons and logos live in `custom_components/starship_tracker/brand/` (transparent PNGs),
 used directly by Home Assistant for custom integrations.
 
-## Carte Lovelace / Lovelace card
+## Carte Starship Tracker (custom card)
+
+Depuis la 1.8.0, une carte Lovelace personnalisée est **livrée avec l'intégration** : aucune installation HACS séparée, aucune ressource à ajouter. Elle est chargée automatiquement dès que l'intégration est configurée (vider le cache du navigateur / de l'app après la mise à jour si elle n'apparaît pas).
+
+1. Mettre à jour Starship Tracker en 1.8.0 via HACS, redémarrer Home Assistant.
+2. Tableau de bord → Modifier → Ajouter une carte → chercher **Starship Tracker** (ou carte manuelle) :
+
+```yaml
+type: custom:starship-tracker-card
+```
+
+Affiche la prochaine mission façon fiche (titre « Mission (SpaceX) », fournisseur, véhicule, rampe, emplacement, date cible, compte à rebours en direct, tags), le statut live et les 5 dernières actualités. Textes en français ou anglais selon la langue de HA. Les entités sont détectées automatiquement ; options facultatives :
+
+```yaml
+type: custom:starship-tracker-card
+show_news: true      # afficher les actualités
+news_count: 5        # nombre d'actualités
+# entités à forcer si besoin : live, next, countdown, status, news
+# next: sensor.starship_tracker_prochaine_mission_starship
+```
+
+*EN* — Since 1.8.0 a custom card ships **with the integration** (no separate HACS install, no resource to add). Add a card of type `custom:starship-tracker-card`; entities are auto-detected.
+
+## Carte Lovelace / Lovelace card (cartes natives)
 
 Exemple prêt à coller (Tableau de bord → Modifier → Ajouter une carte → Manuel), aussi dans [`docs/lovelace-card.yaml`](docs/lovelace-card.yaml).
 Met en avant la **prochaine mission Starship** façon fiche mission (titre « Mission (SpaceX) », Provider / Vehicle / Launch Pad / Location / Target Date / Countdown / Tags), puis le statut live et les 5 dernières actualités. Cartes natives uniquement.
@@ -157,4 +180,5 @@ Home Assistant (HACS) integration — **version 1.5.0**, requires Home Assistant
 - **Starship mission status** (`sensor`): `live` during a stream, otherwise SpaceX `missionStatus` of the next mission.
 - Events `starship_tracker_live_started` / `starship_tracker_live_ended`, and `starship_tracker_launch_soon` (once, within 1 h of launch).
 - Install: HACS → custom repository `https://github.com/XAV59213/starship_tracker` (Integration), then add **Starship Tracker** and paste a NewsAPI key (changeable via *Configure*).
-- Example Lovelace card: `docs/lovelace-card.yaml` (see section above). Brand icons: `custom_components/starship_tracker/brand/`.
+- Custom card bundled with the integration: `type: custom:starship-tracker-card`.
+- Example native Lovelace card: `docs/lovelace-card.yaml` (see section above). Brand icons: `custom_components/starship_tracker/brand/`.
