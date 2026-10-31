@@ -1,22 +1,26 @@
-import logging
+"""Intégration Starship Tracker."""
+from __future__ import annotations
+
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .coordinator import StarshipNewsCoordinator
 
-_LOGGER = logging.getLogger(__name__)
+PLATFORMS: list[Platform] = [Platform.SENSOR]
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Configure l'intégration via une entrée de configuration."""
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = entry.data
+type StarshipConfigEntry = ConfigEntry[StarshipNewsCoordinator]
 
-    # Charge les plateformes (sensors dans notre cas)
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+
+async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> bool:
+    """Crée le coordinator, premier refresh, puis charge les sensors."""
+    coordinator = StarshipNewsCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = coordinator
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+
+async def async_unload_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> bool:
     """Décharge l'intégration."""
-    await hass.config_entries.async_unload_platforms(entry, ["sensor"])
-    hass.data[DOMAIN].pop(entry.entry_id)
-    return True
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

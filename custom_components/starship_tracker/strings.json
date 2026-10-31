@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Starship Tracker",
+        "description": "Enter your free NewsAPI key (https://newsapi.org/register).",
+        "data": {
+          "api_key": "NewsAPI key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Failed to connect to NewsAPI",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Starship Tracker is already configured"
+    }
+  }
+}
