@@ -35,5 +35,21 @@
         "name": "Prochaine mission Starship"
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Starship Tracker",
+        "description": "Saisissez une nouvelle clé NewsAPI (disponible sur {register_url}). L'intégration est rechargée après l'enregistrement.",
+        "data": {
+          "api_key": "Clé NewsAPI"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clé API invalide",
+      "cannot_connect": "Impossible de joindre NewsAPI",
+      "unknown": "Erreur inattendue"
+    }
   }
 }

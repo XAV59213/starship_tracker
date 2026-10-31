@@ -9,7 +9,7 @@ Intégration Home Assistant (HACS) qui expose :
 - **Page du vaisseau Starship** (*Starship vehicle page*) : lien vers <https://www.spacex.com/vehicles/starship>, attribut `url`.
 - **Actualités Starship** (*Starship news*) : nombre d'articles récents, avec les 5 dernières actualités Starship (`title`, `link`, `published`) dans l'attribut `news`. Rafraîchi toutes les 30 minutes via [NewsAPI](https://newsapi.org).
 
-Version actuelle : **1.3.0**. Nécessite Home Assistant **2024.4.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.4.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -20,7 +20,7 @@ Version actuelle : **1.3.0**. Nécessite Home Assistant **2024.4.0** ou plus ré
 
 1. Créer une clé gratuite sur <https://newsapi.org/register>.
 2. Paramètres → Appareils et services → *Ajouter une intégration* → **Starship Tracker**.
-3. Coller la clé NewsAPI. La clé NewsAPI Elle est validée puis stockée dans la config entry Home Assistant (jamais dans le code).
+3. Coller la clé NewsAPI. Pour la changer plus tard : *Paramètres → Appareils et services → Starship Tracker → Configurer* (la clé est testée puis l’intégration rechargée). Elle est validée puis stockée dans la config entry Home Assistant (jamais dans le code).
 
 ## ⚠️ Sécurité
 
