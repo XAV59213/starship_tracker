@@ -29,12 +29,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Ajoute les sensors live et news."""
-    coordinator = entry.runtime_data
+    coordinator = entry.runtime_data.news
     async_add_entities([StarshipLiveSensor(entry), StarshipNewsSensor(coordinator, entry)])
 
 
 class StarshipLiveSensor(SensorEntity):
-    """Lien vers le flux en direct SpaceX (pas de détection de diffusion)."""
+    """Lien vers le compte X SpaceX (état live : voir binary_sensor)."""
 
     _attr_has_entity_name = True
     _attr_name = "Live stream"

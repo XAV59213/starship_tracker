@@ -3,19 +3,44 @@
     "step": {
       "user": {
         "title": "Starship Tracker",
-        "description": "Saisissez votre clé NewsAPI gratuite, disponible sur {register_url}.",
+        "description": "Saisissez votre clé NewsAPI gratuite, disponible sur {register_url}. Optionnel : un bearer token de l'API X (via {x_dev_url}) active la détection des lives SpaceX sur X.",
         "data": {
-          "api_key": "Clé NewsAPI"
+          "api_key": "Clé NewsAPI",
+          "x_bearer_token": "Bearer token API X (optionnel)"
         }
       }
     },
     "error": {
       "invalid_auth": "Clé API invalide",
       "cannot_connect": "Impossible de joindre NewsAPI",
-      "unknown": "Erreur inattendue"
+      "unknown": "Erreur inattendue",
+      "invalid_x_token": "Bearer token X invalide"
     },
     "abort": {
       "already_configured": "Starship Tracker est déjà configuré"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options Starship Tracker",
+        "description": "Bearer token de l'API X (via {x_dev_url}) pour détecter les lives SpaceX sur X. Laisser vide pour désactiver.",
+        "data": {
+          "x_bearer_token": "Bearer token API X (optionnel)"
+        }
+      }
+    },
+    "error": {
+      "invalid_x_token": "Bearer token X invalide",
+      "cannot_connect": "Impossible de joindre NewsAPI",
+      "unknown": "Erreur inattendue"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "spacex_live": {
+        "name": "Live SpaceX sur X"
+      }
     }
   }
 }
