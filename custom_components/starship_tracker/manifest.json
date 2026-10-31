@@ -13,5 +13,5 @@
   "documentation": "https://github.com/XAV59213/starship_tracker",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/XAV59213/starship_tracker/issues",
-  "version": "1.10.0"
+  "version": "1.11.0"
 }

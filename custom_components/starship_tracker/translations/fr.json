@@ -45,6 +45,15 @@
       },
       "missions": {
         "name": "Missions Starship"
+      },
+      "total_launches": {
+        "name": "SpaceX missions terminées"
+      },
+      "total_landings": {
+        "name": "SpaceX atterrissages totaux"
+      },
+      "total_reflights": {
+        "name": "SpaceX réutilisations totales"
       }
     },
     "button": {

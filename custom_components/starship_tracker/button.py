@@ -36,3 +36,4 @@ class StarshipRefreshButton(ButtonEntity):
         data = self._entry.runtime_data
         await data.live.async_refresh()
         await data.news.async_refresh()
+        await data.stats.async_refresh()

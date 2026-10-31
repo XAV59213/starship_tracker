@@ -16,6 +16,7 @@ from . import StarshipConfigEntry
 from .const import DOMAIN, LIVE_URL
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator, launch_datetime
+from .stats_coordinator import SpaceXStatsCoordinator
 
 
 def _device_info(entry: StarshipConfigEntry) -> DeviceInfo:
@@ -43,6 +44,14 @@ async def async_setup_entry(
             StarshipMissionStatusSensor(entry.runtime_data.live, entry),
             StarshipLastFlightSensor(entry.runtime_data.live, entry),
             StarshipMissionsSensor(entry.runtime_data.live, entry),
+            *(
+                SpaceXStatSensor(entry.runtime_data.stats, entry, key, icon)
+                for key, icon in (
+                    ("total_launches", "mdi:rocket-launch"),
+                    ("total_landings", "mdi:airplane-landing"),
+                    ("total_reflights", "mdi:recycle"),
+                )
+            ),
         ]
     )
 
@@ -248,3 +257,26 @@ class StarshipMissionsSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorE
             "upcoming": upcoming,
             "source": "https://www.spacex.com/launches",
         }
+
+
+class SpaceXStatSensor(CoordinatorEntity[SpaceXStatsCoordinator], SensorEntity):
+    """Compteur global SpaceX (missions terminées, atterrissages, réutilisations)."""
+
+    _attr_has_entity_name = True
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, coordinator: SpaceXStatsCoordinator, entry: StarshipConfigEntry, key: str, icon: str) -> None:
+        super().__init__(coordinator)
+        self._key = key
+        self._attr_translation_key = key
+        self._attr_icon = icon
+        self._attr_unique_id = f"{entry.entry_id}_spacex_{key}"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> int | None:
+        return (self.coordinator.data or {}).get(self._key)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"source": "https://www.spacex.com/launches"}

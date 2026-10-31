@@ -9,6 +9,7 @@ Intégration Home Assistant (HACS) qui expose :
 - **Compte à rebours lancement Starship** (*Starship launch countdown*, `sensor`, `device_class: timestamp`) : état = date/heure UTC du prochain lancement Starship (HA affiche « dans 3 jours »…). Attributs : `mission`, `launch_site`, `url`, `seconds_remaining`, `countdown` (ex. `3d 04h 12m`), `launched`, `last_check`. `unknown` si aucun lancement annoncé.
 - **Statut mission Starship** (*Starship mission status*, `sensor`) : `live` pendant un direct, sinon le statut SpaceX de la prochaine mission (`missionStatus`, ex. *Upcoming*, *Scrubbed*). Attributs : `mission`, `is_live`, `launch_date`, `url`, `last_check`.
 - **Dernier vol Starship** (*Last Starship flight*, `sensor`) : nom du dernier vol Starship terminé d'après <https://www.spacex.com/launches> (ex. *Starship Flight 14*). Attributs : `launch_date`, `launch_time`, `launch_time_utc`, `launch_site`, `return_site`, `mission_status`, `url`.
+- **Compteurs SpaceX** (`sensor` ×3) : *SpaceX missions terminées*, *SpaceX atterrissages totaux*, *SpaceX réutilisations totales* — les compteurs de <https://www.spacex.com/launches> (API `content.spacex.com/api/spacex-website/launches-page-stats`, lue toutes les heures). Option carte `show_stats: true`.
 - **Missions Starship** (*Starship missions*, `sensor`) : nombre de vols Starship listés sur <https://www.spacex.com/launches>. Attributs : `past` (10 derniers vols), `upcoming`, `past_count`, `upcoming_count` — chaque mission : `mission`, `launch_date`, `launch_site`, `mission_status`, `url`, `video_url` (webcast live / replay cliquable), `is_live`.
 - **Page du vaisseau Starship** (*Starship vehicle page*) : lien vers <https://www.spacex.com/vehicles/starship>, attribut `url`.
 - **Actualités Starship** (*Starship news*) : nombre d'articles récents, avec les 5 dernières actualités Starship (`title`, `link`, `published`) dans l'attribut `news`. Rafraîchi toutes les 30 minutes via [NewsAPI](https://newsapi.org).
@@ -89,6 +90,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.11.0** : compteurs SpaceX (missions terminées / atterrissages / réutilisations) en sensors et sur la carte (`show_stats`, réglable dans l’éditeur visuel).
+
 **1.10.0** : la carte affiche les prochaines missions et les derniers vols Starship avec un lien **▶ Vidéo** cliquable (options `show_missions: true`, `missions_count: 3`).
 
 Depuis la 1.8.0, une carte Lovelace personnalisée est **livrée avec l'intégration** : aucune installation HACS séparée, aucune ressource à ajouter. Elle est chargée automatiquement dès que l'intégration est configurée (vider le cache du navigateur / de l'app après la mise à jour si elle n'apparaît pas).
@@ -109,6 +112,7 @@ show_details: true   # fiche mission (fournisseur, véhicule, rampe, date, tags)
 show_countdown: true # compte à rebours
 show_live: true      # bandeau live
 show_videos: true    # liens vidéo cliquables
+show_stats: true     # compteurs SpaceX
 show_missions: true  # suivi des missions Starship
 missions_count: 3    # missions par liste
 show_upcoming: true  # prochaines missions
@@ -197,6 +201,7 @@ Home Assistant (HACS) integration — **version 1.10.0**, requires Home Assistan
 - Diagnostics download (NewsAPI key redacted); if NewsAPI fails at startup, live sensors keep working.
 - **Starship news** (`sensor`): latest 5 Starship articles via [NewsAPI](https://newsapi.org) (refreshed every 30 min).
 - **Last Starship flight** (`sensor`): last completed Starship flight from <https://www.spacex.com/launches> (full feed, cached 6 h); the upcoming feed stays primary, the full feed is the fallback.
+- **SpaceX counters** (3 `sensor`s): *SpaceX completed missions*, *SpaceX total landings*, *SpaceX total reflights* from <https://www.spacex.com/launches> (`launches-page-stats` API, hourly). Card option `show_stats: true`.
 - **Starship missions** (`sensor`): number of Starship flights on <https://www.spacex.com/launches>; attributes `past` (latest 10), `upcoming`, `past_count`, `upcoming_count` — each with `mission`, `launch_date`, `launch_site`, `mission_status`, `url`, `video_url` (clickable live / replay webcast), `is_live`.
 - **Starship mission status** (`sensor`): `live` during a stream, otherwise SpaceX `missionStatus` of the next mission.
 - Events `starship_tracker_live_started` / `starship_tracker_live_ended`, and `starship_tracker_launch_soon` (once, within 1 h of launch).
