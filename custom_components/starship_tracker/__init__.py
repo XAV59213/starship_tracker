@@ -1,22 +1,40 @@
-import logging
+"""Intégration Starship Tracker."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .coordinator import StarshipNewsCoordinator
+from .live_coordinator import StarshipLiveCoordinator
 
-_LOGGER = logging.getLogger(__name__)
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Configure l'intégration via une entrée de configuration."""
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = entry.data
 
-    # Charge les plateformes (sensors dans notre cas)
-    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+@dataclass
+class StarshipData:
+    """Données runtime de l'entrée."""
+
+    news: StarshipNewsCoordinator
+    live: StarshipLiveCoordinator
+
+
+type StarshipConfigEntry = ConfigEntry[StarshipData]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> bool:
+    """Crée les coordinators, premier refresh, puis charge les plateformes."""
+    news = StarshipNewsCoordinator(hass, entry)
+    live = StarshipLiveCoordinator(hass)
+    await news.async_config_entry_first_refresh()
+    await live.async_config_entry_first_refresh()
+    entry.runtime_data = StarshipData(news=news, live=live)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+
+async def async_unload_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> bool:
     """Décharge l'intégration."""
-    await hass.config_entries.async_unload_platforms(entry, ["sensor"])
-    hass.data[DOMAIN].pop(entry.entry_id)
-    return True
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

@@ -1,8 +1,22 @@
-DOMAIN = "starship_tracker"
+"""Constantes de l'intégration Starship Tracker."""
+from datetime import timedelta
+from typing import Final
 
-# URL statique pour le flux en direct (YouTube SpaceX)
-LIVE_URL = "https://www.youtube.com/@SpaceX/live"
+DOMAIN: Final = "starship_tracker"
 
-# URL NewsAPI avec ta clé API intégrée
-NEWS_API_KEY = "1374d2f99397404680c8aab1c4be90cd"
-NEWS_URL = f"https://newsapi.org/v2/everything?q=starship+spacex&apiKey={NEWS_API_KEY}"
+# Flux en direct (page véhicule Starship sur spacex.com)
+LIVE_URL: Final = "https://www.spacex.com/vehicles/starship"
+
+# NewsAPI : la clé est saisie par l'utilisateur via le config flow
+CONF_API_KEY: Final = "api_key"
+NEWS_API_URL: Final = "https://newsapi.org/v2/everything"
+NEWS_QUERY: Final = "starship spacex"
+NEWS_LIMIT: Final = 5
+
+SCAN_INTERVAL_NEWS: Final = timedelta(minutes=30)
+
+# Détection du live Starship via l'API publique du site spacex.com
+SPACEX_TILES_URL: Final = "https://content.spacex.com/api/spacex-website/launches-page-tiles/upcoming"
+SPACEX_LAUNCH_URL: Final = "https://www.spacex.com/launches/{link}"
+TRACKED_VEHICLE: Final = "Starship"
+SCAN_INTERVAL_LIVE: Final = timedelta(minutes=5)

@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Starship Tracker",
+        "description": "Enter your free NewsAPI key, available at {register_url}.",
+        "data": {
+          "api_key": "NewsAPI key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Failed to connect to NewsAPI",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Starship Tracker is already configured"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "starship_live": {
+        "name": "Starship live"
+      }
+    },
+    "sensor": {
+      "vehicle_page": {
+        "name": "Starship vehicle page"
+      },
+      "news": {
+        "name": "Starship news"
+      },
+      "next_mission": {
+        "name": "Next Starship mission"
+      }
+    }
+  }
+}
