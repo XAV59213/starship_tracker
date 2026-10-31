@@ -35,5 +35,21 @@
         "name": "Next Starship mission"
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Starship Tracker",
+        "description": "Enter a new NewsAPI key (available at {register_url}). The integration reloads after saving.",
+        "data": {
+          "api_key": "NewsAPI key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Failed to connect to NewsAPI",
+      "unknown": "Unexpected error"
+    }
   }
 }
