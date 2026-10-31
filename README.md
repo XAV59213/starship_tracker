@@ -60,3 +60,12 @@ Variante sans événement : déclencher sur l'état du binary_sensor (`trigger: 
 
 - Le flux JSON est interne au site spacex.com, pas une API documentée : il peut changer sans préavis.
 - Le statut dépend de la mise à jour du flag `isLive` par SpaceX, et du délai de 5 minutes entre deux vérifications.
+
+## Brand / Icônes
+
+Les icônes et logos de l'intégration sont dans `custom_components/starship_tracker/brand/`
+(`icon.png`, `icon@2x.png`, `dark_icon*.png`, `logo*.png`, `dark_logo*.png`, PNG transparents).
+Home Assistant (2026.3+) les utilise directement pour les intégrations personnalisées.
+
+Integration icons and logos live in `custom_components/starship_tracker/brand/` (transparent PNGs),
+used directly by Home Assistant for custom integrations.
