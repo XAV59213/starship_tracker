@@ -39,6 +39,9 @@
       },
       "mission_status": {
         "name": "Starship mission status"
+      },
+      "last_flight": {
+        "name": "Last Starship flight"
       }
     },
     "button": {

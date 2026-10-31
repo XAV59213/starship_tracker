@@ -41,6 +41,7 @@ async def async_setup_entry(
             StarshipNextMissionSensor(entry.runtime_data.live, entry),
             StarshipCountdownSensor(entry.runtime_data.live, entry),
             StarshipMissionStatusSensor(entry.runtime_data.live, entry),
+            StarshipLastFlightSensor(entry.runtime_data.live, entry),
         ]
     )
 
@@ -181,4 +182,28 @@ class StarshipMissionStatusSensor(CoordinatorEntity[StarshipLiveCoordinator], Se
             "url": nxt.get("url"),
             "last_check": data.last_check.isoformat(),
         }
+
+
+class StarshipLastFlightSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorEntity):
+    """Dernier vol Starship (page https://www.spacex.com/launches)."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "last_flight"
+    _attr_icon = "mdi:rocket-launch-outline"
+
+    def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_starship_last_flight"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> str | None:
+        last = self.coordinator.data.last_flight
+        return last["mission"] if last else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        last = self.coordinator.data.last_flight or {}
+        launch = launch_datetime(last)
+        return {**last, "launch_time_utc": launch.isoformat() if launch else None}
 
