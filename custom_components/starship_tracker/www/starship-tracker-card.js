@@ -15,13 +15,67 @@ const esc = (v) =>
 
 const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : null);
 
+const DEFAULTS = {
+  show_details: true, show_countdown: true, show_live: true, show_videos: true,
+  show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
+  show_news: true, news_count: 5,
+};
+
+const LABELS = {
+  title: "Titre (vide = mission) / Title",
+  show_details: "Détails mission / Mission details",
+  show_countdown: "Compte à rebours / Countdown",
+  show_live: "Bandeau live / Live banner",
+  show_videos: "Liens vidéo / Video links",
+  show_missions: "Suivi des missions / Missions tracking",
+  missions_count: "Nb missions / Missions count",
+  show_upcoming: "Prochaines missions / Upcoming",
+  show_last: "Derniers vols / Latest flights",
+  show_news: "Actualités / News",
+  news_count: "Nb actualités / News count",
+  next: "Prochaine mission", countdown: "Countdown", status: "Statut mission",
+  missions: "Missions", news: "News", live: "Live",
+};
+
 class StarshipTrackerCard extends HTMLElement {
   static getStubConfig() {
-    return {};
+    return { ...DEFAULTS };
+  }
+
+  // Éditeur visuel natif HA (2024.11+) : « Modifier la carte » affiche ce formulaire.
+  static getConfigForm() {
+    const b = (name) => ({ name, selector: { boolean: {} } });
+    const num = (name, max) => ({ name, selector: { number: { min: 1, max, mode: "box" } } });
+    const ent = (name, domain) => ({ name, selector: { entity: { domain, integration: "starship_tracker" } } });
+    return {
+      schema: [
+        { name: "title", selector: { text: {} } },
+        { type: "expandable", name: "", title: "Affichage / Display", flatten: true, schema: [
+          { type: "grid", name: "", flatten: true, schema: [
+            b("show_details"), b("show_countdown"), b("show_live"), b("show_videos"),
+          ] },
+        ] },
+        { type: "expandable", name: "", title: "Missions", flatten: true, schema: [
+          { type: "grid", name: "", flatten: true, schema: [
+            b("show_missions"), num("missions_count", 20), b("show_upcoming"), b("show_last"),
+          ] },
+        ] },
+        { type: "expandable", name: "", title: "Actualités / News", flatten: true, schema: [
+          { type: "grid", name: "", flatten: true, schema: [b("show_news"), num("news_count", 20)] },
+        ] },
+        { type: "expandable", name: "", title: "Entités (optionnel) / Entities (optional)", flatten: true, schema: [
+          ent("next", "sensor"), ent("countdown", "sensor"), ent("status", "sensor"),
+          ent("missions", "sensor"), ent("news", "sensor"), ent("live", "binary_sensor"),
+        ] },
+      ],
+      computeLabel: (s) => LABELS[s.name] || s.name,
+    };
   }
 
   setConfig(config) {
-    this._config = { show_news: true, news_count: 5, show_missions: true, missions_count: 3, ...(config || {}) };
+    this._config = { ...DEFAULTS, ...(config || {}) };
+    this._config.news_count = Math.max(1, Number(this._config.news_count) || DEFAULTS.news_count);
+    this._config.missions_count = Math.max(1, Number(this._config.missions_count) || DEFAULTS.missions_count);
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._timer && clearInterval(this._timer);
     this._timer = setInterval(() => this._render(), 30000);
@@ -78,6 +132,7 @@ class StarshipTrackerCard extends HTMLElement {
           news: "Starship news", nonews: "No news", details: "Details", none: "No mission announced",
           upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None" };
 
+    const C = this._config;
     const next = this._state("next");
     const a = next?.attributes || {};
     const hasMission = next && !["unknown", "unavailable", ""].includes(next.state);
@@ -94,7 +149,7 @@ class StarshipTrackerCard extends HTMLElement {
       .filter(Boolean).map(esc).join(" | ");
     const row = (k, v) => `<div class="row"><span class="k">${esc(k)}:</span> ${v}</div>`;
 
-    const news = (this._state("news")?.attributes?.news || []).slice(0, this._config.news_count);
+    const news = (this._state("news")?.attributes?.news || []).slice(0, C.news_count);
     const newsHtml = news.length
       ? news.map((n) => {
           const link = safeUrl(n.link);
@@ -104,16 +159,17 @@ class StarshipTrackerCard extends HTMLElement {
       : `<li class="muted">${L.nonews}</li>`;
 
     const ma = this._state("missions")?.attributes || {};
-    const n = this._config.missions_count;
+    const n = C.missions_count;
     const mList = (list) => (list || []).length
       ? list.slice(0, n).map((m) => {
           const v = safeUrl(m.video_url) || safeUrl(m.url);
           const d = m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "TBD";
-          return `<li>${m.is_live ? "🔴 " : ""}<b>${esc(m.mission)}</b> — ${esc(d)}${m.launch_site ? ` · ${esc(m.launch_site)}` : ""}${v ? ` · <a href="${esc(v)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</li>`;
+          return `<li>${m.is_live ? "🔴 " : ""}<b>${esc(m.mission)}</b> — ${esc(d)}${m.launch_site ? ` · ${esc(m.launch_site)}` : ""}${v && C.show_videos ? ` · <a href="${esc(v)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</li>`;
         }).join("")
       : `<li class="muted">${L.nomission}</li>`;
-    const missionsHtml = this._config.show_missions && this._state("missions")
-      ? `<h3>${L.upcoming}</h3><ul>${mList(ma.upcoming)}</ul><h3>${L.past}</h3><ul>${mList(ma.past)}</ul>` : "";
+    const missionsHtml = C.show_missions && this._state("missions")
+      ? (C.show_upcoming ? `<h3>${L.upcoming}</h3><ul>${mList(ma.upcoming)}</ul>` : "")
+        + (C.show_last ? `<h3>${L.past}</h3><ul>${mList(ma.past)}</ul>` : "") : "";
     const vurl = safeUrl(a.video_url) || url;
 
     this.shadowRoot.innerHTML = `
@@ -133,21 +189,22 @@ class StarshipTrackerCard extends HTMLElement {
         .cd { font-weight: 700; }
       </style>
       <ha-card>
-        <div class="title">${hasMission ? esc(next.state) : "TBD"} (SpaceX)</div>
+        <div class="title">${C.title ? esc(C.title) : `${hasMission ? esc(next.state) : "TBD"} (SpaceX)`}</div>
+        ${C.show_details ? `
         ${row(L.provider, "SpaceX")}
         ${row(L.vehicle, esc(a.vehicle || "Starship"))}
         ${row(L.pad, esc(a.launch_site || "Starbase"))}
         ${row(L.location, "Starbase, Texas, United States")}
-        ${row(L.date, esc(hasMission ? date : "TBD"))}
-        ${hasMission ? row(L.countdown, `<span class="cd">${esc(this._countdown(cd))}</span>`) : ""}
-        ${row(L.tags, hasMission ? (tags || "—") + " |" : esc(L.none))}
-        ${hasMission ? `<div class="row"><a href="${esc(url)}" target="_blank" rel="noopener">${L.details} →</a> · <a href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a></div>` : ""}
-        <div class="live ${isLive ? "on" : ""}">
+        ${row(L.date, esc(hasMission ? date : "TBD"))}` : ""}
+        ${hasMission && C.show_countdown ? row(L.countdown, `<span class="cd">${esc(this._countdown(cd))}</span>`) : ""}
+        ${C.show_details ? row(L.tags, hasMission ? (tags || "—") + " |" : esc(L.none)) : ""}
+        ${hasMission && C.show_details ? `<div class="row"><a href="${esc(url)}" target="_blank" rel="noopener">${L.details} →</a>${C.show_videos ? ` · <a href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</div>` : ""}
+        ${C.show_live ? `<div class="live ${isLive ? "on" : ""}">
           ${isLive ? `🔴 ${L.live} — <a href="${esc(url)}" target="_blank" rel="noopener">${L.watch}</a>`
                    : `⚪ ${L.nolive} — <a href="https://www.spacex.com/vehicles/starship" target="_blank" rel="noopener">spacex.com</a>`}
-        </div>
+        </div>` : ""}
         ${missionsHtml}
-        ${this._config.show_news ? `<h3>${L.news}</h3><ul>${newsHtml}</ul>` : ""}
+        ${C.show_news ? `<h3>${L.news}</h3><ul>${newsHtml}</ul>` : ""}
       </ha-card>`;
   }
 }

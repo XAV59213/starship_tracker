@@ -100,13 +100,22 @@ Depuis la 1.8.0, une carte Lovelace personnalisée est **livrée avec l'intégra
 type: custom:starship-tracker-card
 ```
 
-Affiche la prochaine mission façon fiche (titre « Mission (SpaceX) », fournisseur, véhicule, rampe, emplacement, date cible, compte à rebours en direct, tags), le statut live et les 5 dernières actualités. Textes en français ou anglais selon la langue de HA. Les entités sont détectées automatiquement ; options facultatives :
+Affiche la prochaine mission façon fiche (titre « Mission (SpaceX) », fournisseur, véhicule, rampe, emplacement, date cible, compte à rebours en direct, tags), le statut live et les 5 dernières actualités. Textes en français ou anglais selon la langue de HA. Les entités sont détectées automatiquement. **Toutes les options se règlent dans l’éditeur visuel** (Modifier la carte) ou en YAML :
 
 ```yaml
 type: custom:starship-tracker-card
+title: ""            # titre perso (vide = nom de la mission)
+show_details: true   # fiche mission (fournisseur, véhicule, rampe, date, tags)
+show_countdown: true # compte à rebours
+show_live: true      # bandeau live
+show_videos: true    # liens vidéo cliquables
+show_missions: true  # suivi des missions Starship
+missions_count: 3    # missions par liste
+show_upcoming: true  # prochaines missions
+show_last: true      # derniers vols
 show_news: true      # afficher les actualités
 news_count: 5        # nombre d'actualités
-# entités à forcer si besoin : live, next, countdown, status, news
+# entités à forcer si besoin : live, next, countdown, status, missions, news
 # next: sensor.starship_tracker_prochaine_mission_starship
 ```
 
