@@ -134,3 +134,16 @@ cards:
       Aucune actualité / No news
       {% endfor %}
 ```
+
+## English
+
+Home Assistant (HACS) integration — **version 1.5.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+
+- **Starship live** (`binary_sensor`): `on` while a Starship mission is live on spacex.com (checked every 5 min, no key).
+- **Next Starship mission** (`sensor`): name of the next announced Starship mission; attributes `launch_date`, `launch_time`, `launch_site`, `mission_status`, `vehicle`, `mission_type`, `url`.
+- **Starship launch countdown** (`sensor`, `device_class: timestamp`): next launch time; attributes `seconds_remaining`, `countdown`, `launched`.
+- **Starship vehicle page** (`sensor`): link to <https://www.spacex.com/vehicles/starship>.
+- **Starship news** (`sensor`): latest 5 Starship articles via [NewsAPI](https://newsapi.org) (refreshed every 30 min).
+- Events `starship_tracker_live_started` / `starship_tracker_live_ended` for automations.
+- Install: HACS → custom repository `https://github.com/XAV59213/starship_tracker` (Integration), then add **Starship Tracker** and paste a NewsAPI key (changeable via *Configure*).
+- Example Lovelace card: `docs/lovelace-card.yaml` (see section above). Brand icons: `custom_components/starship_tracker/brand/`.
