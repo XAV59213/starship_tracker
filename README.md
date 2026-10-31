@@ -74,40 +74,56 @@ used directly by Home Assistant for custom integrations.
 ## Carte Lovelace / Lovelace card
 
 Exemple prêt à coller (Tableau de bord → Modifier → Ajouter une carte → Manuel), aussi dans [`docs/lovelace-card.yaml`](docs/lovelace-card.yaml).
-Affiche le statut live, la prochaine mission, le compte à rebours, le site et les 5 dernières actualités. Cartes natives uniquement.
+Met en avant la **prochaine mission Starship** façon fiche mission (titre « Mission (SpaceX) », Provider / Vehicle / Launch Pad / Location / Target Date / Countdown / Tags), puis le statut live et les 5 dernières actualités. Cartes natives uniquement.
 
 Ready-to-paste example (Dashboard → Edit → Add card → Manual), also in `docs/lovelace-card.yaml`. Native cards only.
 
 > Les `entity_id` ci-dessous correspondent à une installation en anglais. En français ils peuvent être par ex. `sensor.starship_tracker_prochaine_mission_starship` — vérifiez dans Paramètres → Entités.
 
 ```yaml
-# Starship Tracker — exemple de carte Lovelace / example Lovelace card
-# Cartes natives uniquement (aucune carte custom requise).
+# Starship Tracker — carte Lovelace / Lovelace card
+# Style « fiche mission » (titre « Mission (Provider) » + lignes), cartes natives uniquement.
 # Adaptez les entity_id si votre HA est en français (voir README).
 type: vertical-stack
 cards:
+  # 1) Prochaine mission Starship (mise en avant)
   - type: markdown
-    content: |
-      ## 🚀 Starship Tracker
+    content: >
+      {% set m = 'sensor.starship_tracker_next_starship_mission' %}
+      {% set c = 'sensor.starship_tracker_starship_launch_countdown' %}
+      {% if states(m) not in ['unknown', 'unavailable', ''] %}
+      ## {{ states(m) }} (SpaceX)
+
+      **Provider:** SpaceX<br>
+      **Vehicle:** {{ state_attr(m, 'vehicle') or 'Starship' }}<br>
+      **Launch Pad:** {{ state_attr(m, 'launch_site') or 'Starbase' }}<br>
+      **Location:** Starbase, Texas, United States<br>
+      **Target Date:** {{ state_attr(m, 'launch_date') or 'TBD' }} {{ state_attr(m, 'launch_time') or '' }}<br>
+      **Countdown:** {{ state_attr(c, 'countdown') or '—' }}{% if state_attr(c, 'launched') %} (lancé / launched){% endif %}<br>
+      **Tags:** {{ state_attr(m, 'mission_type') or 'Test flight' }} | {{ state_attr(m, 'mission_status') or 'Upcoming' }} |
+
+      [Détails / Details]({{ state_attr(m, 'url') }})
+      {% else %}
+      ## TBD (SpaceX)
+
+      **Provider:** SpaceX<br>
+      **Vehicle:** Starship<br>
+      **Launch Pad:** Starbase<br>
+      **Location:** Starbase, Texas, United States<br>
+      **Target Date:** TBD<br>
+      **Tags:** Aucune mission annoncée / No mission announced |
+      {% endif %}
+
+  # 2) Statut live
+  - type: markdown
+    content: >
       {% if is_state('binary_sensor.starship_tracker_starship_live', 'on') %}
       🔴 **EN DIRECT / LIVE** — [Regarder / Watch]({{ state_attr('sensor.starship_tracker_next_starship_mission', 'url') or 'https://www.spacex.com/vehicles/starship' }})
       {% else %}
-      ⚪ Pas de live en cours / No live stream
+      ⚪ Pas de live en cours / No live stream — [spacex.com/vehicles/starship](https://www.spacex.com/vehicles/starship)
       {% endif %}
-  - type: entities
-    entities:
-      - entity: binary_sensor.starship_tracker_starship_live
-      - entity: sensor.starship_tracker_next_starship_mission
-      - entity: sensor.starship_tracker_starship_launch_countdown
-        format: relative
-      - type: attribute
-        entity: sensor.starship_tracker_starship_launch_countdown
-        attribute: countdown
-        name: T-
-      - type: attribute
-        entity: sensor.starship_tracker_next_starship_mission
-        attribute: launch_site
-        name: Site
+
+  # 3) Actualités
   - type: markdown
     title: Actualités / News
     content: |
@@ -117,6 +133,4 @@ cards:
       {% else %}
       Aucune actualité / No news
       {% endfor %}
-      
-      [Page Starship sur spacex.com](https://www.spacex.com/vehicles/starship)
 ```
