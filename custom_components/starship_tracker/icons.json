@@ -1,0 +1,58 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "starship_live": {
+        "default": "mdi:rocket-launch",
+        "state": {
+          "on": "mdi:broadcast"
+        }
+      }
+    },
+    "button": {
+      "refresh": {
+        "default": "mdi:refresh"
+      }
+    },
+    "sensor": {
+      "vehicle_page": {
+        "default": "mdi:rocket-launch"
+      },
+      "news": {
+        "default": "mdi:newspaper"
+      },
+      "next_mission": {
+        "default": "mdi:calendar-star"
+      },
+      "countdown": {
+        "default": "mdi:timer-sand"
+      },
+      "mission_status": {
+        "default": "mdi:rocket"
+      },
+      "last_flight": {
+        "default": "mdi:rocket-launch-outline"
+      },
+      "missions": {
+        "default": "mdi:rocket-launch"
+      },
+      "total_launches": {
+        "default": "mdi:rocket-launch"
+      },
+      "total_landings": {
+        "default": "mdi:airplane-landing"
+      },
+      "total_reflights": {
+        "default": "mdi:recycle"
+      },
+      "youtube_fr": {
+        "default": "mdi:youtube"
+      },
+      "youtube_en": {
+        "default": "mdi:youtube"
+      },
+      "youtube_fr_starbase": {
+        "default": "mdi:youtube"
+      }
+    }
+  }
+}

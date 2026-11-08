@@ -52,12 +52,8 @@ async def async_setup_entry(
             StarshipLastFlightSensor(entry.runtime_data.live, entry),
             StarshipMissionsSensor(entry.runtime_data.live, entry),
             *(
-                SpaceXStatSensor(entry.runtime_data.stats, entry, key, icon)
-                for key, icon in (
-                    ("total_launches", "mdi:rocket-launch"),
-                    ("total_landings", "mdi:airplane-landing"),
-                    ("total_reflights", "mdi:recycle"),
-                )
+                SpaceXStatSensor(entry.runtime_data.stats, entry, key)
+                for key in ("total_launches", "total_landings", "total_reflights")
             ),
         ]
     )
@@ -68,7 +64,7 @@ class StarshipLiveSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "vehicle_page"
-    _attr_icon = "mdi:rocket-launch"
+    _attr_entity_registry_enabled_default = False
     _attr_should_poll = False
 
     def __init__(self, entry: StarshipConfigEntry) -> None:
@@ -83,7 +79,6 @@ class StarshipNewsSensor(CoordinatorEntity[StarshipNewsCoordinator], SensorEntit
 
     _attr_has_entity_name = True
     _attr_translation_key = "news"
-    _attr_icon = "mdi:newspaper"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "articles"
 
@@ -106,7 +101,6 @@ class StarshipNextMissionSensor(CoordinatorEntity[StarshipLiveCoordinator], Sens
 
     _attr_has_entity_name = True
     _attr_translation_key = "next_mission"
-    _attr_icon = "mdi:calendar-star"
 
     def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
         super().__init__(coordinator)
@@ -136,7 +130,6 @@ class StarshipCountdownSensor(CoordinatorEntity[StarshipLiveCoordinator], Sensor
 
     _attr_has_entity_name = True
     _attr_translation_key = "countdown"
-    _attr_icon = "mdi:timer-sand"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
@@ -175,7 +168,6 @@ class StarshipMissionStatusSensor(CoordinatorEntity[StarshipLiveCoordinator], Se
 
     _attr_has_entity_name = True
     _attr_translation_key = "mission_status"
-    _attr_icon = "mdi:rocket"
 
     def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
         super().__init__(coordinator)
@@ -209,7 +201,6 @@ class StarshipLastFlightSensor(CoordinatorEntity[StarshipLiveCoordinator], Senso
 
     _attr_has_entity_name = True
     _attr_translation_key = "last_flight"
-    _attr_icon = "mdi:rocket-launch-outline"
 
     def __init__(self, coordinator: StarshipLiveCoordinator, entry: StarshipConfigEntry) -> None:
         super().__init__(coordinator)
@@ -234,7 +225,6 @@ class StarshipMissionsSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorE
 
     _attr_has_entity_name = True
     _attr_translation_key = "missions"
-    _attr_icon = "mdi:rocket-launch"
     _attr_native_unit_of_measurement = "missions"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -292,11 +282,10 @@ class SpaceXStatSensor(CoordinatorEntity[SpaceXStatsCoordinator], SensorEntity):
     _attr_has_entity_name = True
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
 
-    def __init__(self, coordinator: SpaceXStatsCoordinator, entry: StarshipConfigEntry, key: str, icon: str) -> None:
+    def __init__(self, coordinator: SpaceXStatsCoordinator, entry: StarshipConfigEntry, key: str) -> None:
         super().__init__(coordinator)
         self._key = key
         self._attr_translation_key = key
-        self._attr_icon = icon
         self._attr_unique_id = f"{entry.entry_id}_spacex_{key}"
         self._attr_device_info = _device_info(entry)
 
@@ -313,7 +302,6 @@ class YouTubeSensor(CoordinatorEntity[YouTubeCoordinator], SensorEntity):
     """Latest matching public upload for the configured language/channel."""
 
     _attr_has_entity_name = True
-    _attr_icon = "mdi:youtube"
 
     def __init__(self, coordinator: YouTubeCoordinator, entry: StarshipConfigEntry, language: str) -> None:
         super().__init__(coordinator)

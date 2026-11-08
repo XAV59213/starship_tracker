@@ -163,6 +163,30 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Impossible d'actualiser les données SpaceX (spacex.com injoignable)."
+    },
+    "newsapi_error": {
+      "message": "Erreur NewsAPI {status} : {error}"
+    },
+    "newsapi_network": {
+      "message": "Erreur réseau NewsAPI : {error}"
+    },
+    "newsapi_invalid": {
+      "message": "Réponse NewsAPI invalide : {error}"
+    },
+    "stats_failed": {
+      "message": "Impossible de lire les statistiques SpaceX : {error}"
+    },
+    "spacex_status": {
+      "message": "spacex.com a répondu {status} pour {url}"
+    },
+    "spacex_format": {
+      "message": "Format de réponse spacex.com inattendu pour {url}"
+    },
+    "spacex_unavailable": {
+      "message": "spacex.com indisponible : {error}"
+    },
+    "youtube_failed": {
+      "message": "Flux YouTube {language} indisponible : {error}"
     }
   }
 }

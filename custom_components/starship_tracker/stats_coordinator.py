@@ -30,7 +30,7 @@ class SpaceXStatsCoordinator(DataUpdateCoordinator[dict[str, int | None]]):
                 resp.raise_for_status()
                 raw: dict[str, Any] = await resp.json(content_type=None)
         except (aiohttp.ClientError, TimeoutError, ValueError) as err:
-            raise UpdateFailed(f"SpaceX stats: {err}") from err
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="stats_failed", translation_placeholders={"error": str(err)}) from err
 
         def _int(key: str) -> int | None:
             try:

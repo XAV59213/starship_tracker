@@ -348,7 +348,7 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
                 async_get_clientsession(self.hass), self.channel, self.keyword
             )
         except (aiohttp.ClientError, TimeoutError, ValueError, ET.ParseError) as err:
-            raise UpdateFailed(f"YouTube {self.language}: {err}") from err
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="youtube_failed", translation_placeholders={"language": self.language, "error": str(err)}) from err
         new = [
             video for video in reversed(videos) if video["video_id"] not in self._seen
         ]

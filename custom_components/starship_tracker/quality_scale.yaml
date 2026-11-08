@@ -1,5 +1,5 @@
 # Integration Quality Scale — Starship Tracker (intégration personnalisée HACS)
-# Niveau visé / atteint : silver
+# Niveau visé / atteint : gold
 rules:
   # ---------- Bronze ----------
   action-setup:
@@ -57,17 +57,17 @@ rules:
     status: exempt
     comment: Aucun appareil physique.
   docs-supported-functions: done
-  docs-troubleshooting: todo
+  docs-troubleshooting: done  # README « Dépannage » + wiki Depannage
   docs-use-cases: done
   dynamic-devices:
     status: exempt
     comment: Un seul appareil service.
   entity-category: done  # bouton / page véhicule en diagnostic
   entity-device-class: done  # timestamp pour le compte à rebours
-  entity-disabled-by-default: todo
+  entity-disabled-by-default: done  # page véhicule désactivée par défaut
   entity-translations: done
-  exception-translations: todo  # seulement refresh_failed traduite ; messages UpdateFailed non traduits
-  icon-translations: todo  # icônes encore définies via _attr_icon
+  exception-translations: done  # UpdateFailed et HomeAssistantError traduits (FR/EN)
+  icon-translations: done  # icons.json
   reconfiguration-flow: done
   repair-issues:
     status: exempt

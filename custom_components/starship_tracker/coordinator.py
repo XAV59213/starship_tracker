@@ -37,7 +37,7 @@ async def async_fetch_news(session: aiohttp.ClientSession, api_key: str) -> list
                 raise InvalidApiKey
             data = await resp.json(content_type=None)
             if resp.status != 200 or data.get("status") != "ok":
-                raise UpdateFailed(f"NewsAPI error {resp.status}: {data.get('message', 'unknown')}")
+                raise UpdateFailed(translation_domain=DOMAIN, translation_key="newsapi_error", translation_placeholders={"status": str(resp.status), "error": str(data.get("message", "unknown"))})
     return [
         {
             "title": a.get("title"),
@@ -63,6 +63,6 @@ class StarshipNewsCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             # Déclenche le flux de réauthentification (nouvelle clé NewsAPI)
             raise ConfigEntryAuthFailed("Clé NewsAPI invalide") from err
         except (aiohttp.ClientError, TimeoutError) as err:
-            raise UpdateFailed(f"Erreur réseau NewsAPI : {err}") from err
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="newsapi_network", translation_placeholders={"error": str(err)}) from err
         except ValueError as err:
-            raise UpdateFailed(f"Réponse NewsAPI invalide : {err}") from err
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="newsapi_invalid", translation_placeholders={"error": str(err)}) from err
