@@ -341,15 +341,16 @@ def test_video_renderer_start_time_and_merge_keeps_rss_date():
     start = datetime(2026, 11, 20, 18, 30, tzinfo=UTC)
     renderer = {"videoRenderer": {
         "videoId": "lllllllllll",
-        "title": {"runs": [{"text": "Compte a rebours"}]},
+        "title": {"runs": [{"text": "Starship compte a rebours"}]},
         "upcomingEventData": {"startTime": str(int(start.timestamp()))},
         "thumbnailOverlays": [{"thumbnailOverlayTimeStatusRenderer": {"style": "UPCOMING", "text": {"simpleText": "UPCOMING"}}}],
     }}
     page = _tab_page([{"richItemRenderer": {"content": renderer}}])
     found = parse_channel_tab(page, "starship", now, streams=True)
     assert found[0]["live_status"] == "upcoming"
+    assert "scheduled_approx" not in found[0]
     assert found[0]["scheduled"] == start.isoformat()
-    rss = {"video_id": "lllllllllll", "title": "Compte a rebours", "url": found[0]["url"], "published": "2026-11-08T12:00:00+00:00", "thumbnail": found[0]["thumbnail"]}
+    rss = {"video_id": "lllllllllll", "title": "Starship compte a rebours", "url": found[0]["url"], "published": "2026-11-08T12:00:00+00:00", "thumbnail": found[0]["thumbnail"]}
     merged = merge_videos([rss], found)
     assert merged[0]["published"] == rss["published"]
     assert merged[0]["live_status"] == "upcoming"
