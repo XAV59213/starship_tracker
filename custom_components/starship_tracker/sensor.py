@@ -250,7 +250,6 @@ class StarshipMissionsSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorE
                     "mission_status",
                     "url",
                     "video_url",
-                    "call_to_action",
                     "is_live",
                     "date_source",
                     "launch_window_minutes",
@@ -273,8 +272,8 @@ class StarshipMissionsSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorE
         return {
             "past_count": len(past),
             "upcoming_count": len(upcoming),
-            # Les 10 derniers vols (plus récent d'abord) pour limiter la taille de l'état
-            "past": list(reversed(past))[:10],
+            # Tous les vols Starship (plus récent d'abord) ; ~25 vols ≈ 10 Ko
+            "past": list(reversed(past))[:40],
             "upcoming": upcoming,
             "source": "https://www.spacex.com/launches",
         }

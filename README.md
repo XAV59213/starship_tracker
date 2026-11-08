@@ -25,7 +25,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.13.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.14.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -100,6 +100,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.14.0** : tous les vols Starship (21 : SN5 → Flight 15) dans le carrousel et la liste (`carousel_count` par défaut 25) ; vignettes à taille fixe (image `<img>` 16/9, plus de vignette vide sur mobile, 1 vignette ≈ 82 % de largeur) ; panneau Détails : vidéo (YouTube intégré, sinon bouton ▶ vers le direct/replay X), image du plan de vol (infographie), sections repliables COMPTE À REBOURS et CHRONOLOGIE DU VOL en police monospace. Nouveaux attributs prochaine mission : `mission_videos`, `mission_infographic(_mobile)`, `mission_countdown`, `mission_timeline`. Pour les vols passés, la carte lit la page mission à la demande (cache 6 h).
+
 **1.13.1** : correction de la page qui « saute » sur la carte : la carte ne se redessine plus à chaque mise à jour de Home Assistant (seulement si une entité Starship change), le compte à rebours est mis à jour en place, l'image du panneau Détails réserve sa place (16/9), état du panneau et défilement du carrousel conservés.
 
 **1.13.0** : bouton « Détails » sur la carte (option `show_details_button`, affiché par défaut) qui déplie la photo de la mission, la date/heure locale, la fenêtre, la rampe, le statut, la description et les liens (webcast, page spacex.com). La page mission de la prochaine mission est toujours lue (cache 30 min) ; carrousel d'images (`show_carousel`, `carousel_count`) des missions Starship à venir et passées avec badge À VENIR / DIRECT / TERMINÉ ; un clic ouvre le panneau Détails de la mission ; attribut `image` dans les listes du capteur missions (images du flux /launches, sans requête en plus) ; nouveaux attributs du capteur prochaine mission : `mission_image` (URL absolue), `mission_description` (texte, 1500 caractères max), `mission_url`, `mission_links`, `webcast_links`.
@@ -126,7 +128,7 @@ type: custom:starship-tracker-card
 title: ""            # titre perso (vide = nom de la mission)
 show_details: true   # fiche mission (fournisseur, véhicule, rampe, date, tags)
 show_carousel: true   # carrousel d'images des missions (à venir + passées), flèches, badges
-carousel_count: 10    # nombre max de vignettes
+carousel_count: 25    # nombre max de vignettes
 show_details_button: true   # bouton « Détails » : photo, date locale, fenêtre, rampe, statut, description, liens
 show_countdown: true # compte à rebours
 show_live: true      # bandeau live
@@ -210,8 +212,9 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.13.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.14.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
+- **1.14.0** — all Starship flights (21, SN5 → Flight 15) in the carousel and list (`carousel_count` default 25); fixed-size tiles (no more empty tile on mobile); Details panel: video (YouTube embed or ▶ button to the X webcast), flight-plan infographic, collapsible monospace COUNTDOWN and FLIGHT TIMELINE. New next-mission attributes `mission_videos`, `mission_infographic(_mobile)`, `mission_countdown`, `mission_timeline`; past flights load their mission page on demand in the card (6 h cache).
 - **1.13.1** — fix page jumping on the card: re-render only when a Starship entity changes (not on every `hass` update), countdown updated in place, Details image space reserved (16/9), panel state and carousel scroll kept.
 - **1.13.0** — card « Details » button (`show_details_button`, on by default) plus an image carousel (`show_carousel`, `carousel_count`) of upcoming + past Starship missions with UPCOMING / LIVE / COMPLETED badges — tap a tile for its details; `image` attribute in the missions lists — expanding the mission image, local date/time, window, pad, status, description and links. The next mission's page is always fetched (30 min cache); new next-mission attributes `mission_image`, `mission_description` (plain text, ≤1500 chars), `mission_url`, `mission_links`, `webcast_links`.
 - **1.12.0** — when a Starship tile has null `launchDate`, `launchTime` and `endDate`, the mission-page prose is parsed (cached 30 min) into a UTC timestamp for the countdown and the card. Flight 15: 4:45 p.m. CT on November 13, 2026 → `2026-11-13T22:45:00Z`. New attributes: `date_source` (`feed` / `mission_page`) and `launch_window_minutes`. Feed values still win when present.

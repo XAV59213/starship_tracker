@@ -307,6 +307,11 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
                 "mission_links": details.get("mission_links") or [],
                 "webcast_links": details.get("webcast_links") or [],
                 "mission_url": mission.get("url"),
+                "mission_videos": details.get("mission_videos") or [],
+                "mission_infographic": details.get("mission_infographic"),
+                "mission_infographic_mobile": details.get("mission_infographic_mobile"),
+                "mission_countdown": details.get("mission_countdown") or [],
+                "mission_timeline": details.get("mission_timeline") or [],
             }
         )
 

@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.13.1";
+const CARD_VERSION = "1.14.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -18,10 +18,49 @@ const esc = (v) =>
 
 const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : null);
 
+const imgUrl = (im) => {
+  if (!im || typeof im !== "object") return null;
+  const f = im.formats || {};
+  let u = (f.large && f.large.url) || (f.medium && f.medium.url) || im.url;
+  if (typeof u !== "string") return null;
+  if (u.startsWith("/")) u = "https://content.spacex.com" + u;
+  return safeUrl(u);
+};
+const plain = (h) => String(h || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+  .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
+const webcast = (c) => {
+  const vid = String((c && c.videoId) || "").split(/[&?#]/)[0];
+  const k = String((c && c.streamingVideoType) || "").toLowerCase();
+  if (!/^[A-Za-z0-9_-]+$/.test(vid)) return null;
+  if (k.includes("youtube")) return { type: "youtube", url: `https://www.youtube.com/watch?v=${vid}`, embed: `https://www.youtube-nocookie.com/embed/${vid}` };
+  if (k === "x-live-studio") return { type: "x", url: `https://x.com/i/broadcasts/${vid}` };
+  if (["x.com", "x", "twitter"].includes(k)) return { type: "x", url: `https://x.com/SpaceX/status/${vid}` };
+  return null;
+};
+const timeline = (t) => ((t && t.timelineEntries) || []).slice(0, 30)
+  .map((e) => [plain(e.time).slice(0, 16), plain(e.description).slice(0, 160)]).filter((e) => e[1]);
+// Équivalent JS de mission_date.extract_mission_details (pages des vols passés).
+const parseMission = (p) => {
+  if (!p || typeof p !== "object") return {};
+  const desc = (p.paragraphs || []).map((x) => plain(x && x.content)).filter(Boolean).join("\n\n");
+  const vids = (p.webcasts || []).map(webcast).filter(Boolean).slice(0, 3);
+  const file = p.videoDesktop && safeUrl(p.videoDesktop.url);
+  if (file) vids.unshift({ type: "file", url: file });
+  return {
+    mission_image: imgUrl(p.imageDesktop) || imgUrl(p.imageMobile),
+    mission_description: desc.length > 1500 ? desc.slice(0, 1499) + "…" : desc,
+    mission_videos: vids,
+    mission_infographic: imgUrl(p.infographicDesktop),
+    mission_infographic_mobile: imgUrl(p.infographicMobile),
+    mission_countdown: timeline(p.preLaunchTimeline),
+    mission_timeline: timeline(p.postLaunchTimeline),
+  };
+};
+
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 10,
+  show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
 };
 
 const LABELS = {
@@ -66,7 +105,7 @@ class StarshipTrackerCard extends HTMLElement {
         ] },
         { type: "expandable", name: "", title: "Compteurs SpaceX / SpaceX counters", flatten: true, schema: [b("show_stats")] },
         { type: "expandable", name: "", title: "Carrousel / Carousel", flatten: true, schema: [
-          { type: "grid", name: "", flatten: true, schema: [b("show_carousel"), num("carousel_count", 30)] },
+          { type: "grid", name: "", flatten: true, schema: [b("show_carousel"), num("carousel_count", 50)] },
         ] },
         { type: "expandable", name: "", title: "Missions", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [
@@ -93,6 +132,8 @@ class StarshipTrackerCard extends HTMLElement {
     this._config.missions_count = Math.max(1, Number(this._config.missions_count) || DEFAULTS.missions_count);
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._sig = null;
+    this._details = this._details || {};
+    this._secs = this._secs || new Set();
     this._startTimer();
     if (this._hass) this._render();
   }
@@ -106,6 +147,19 @@ class StarshipTrackerCard extends HTMLElement {
   _tick() {
     const el = this.shadowRoot && this.shadowRoot.querySelector(".cd");
     if (el && this._launchMs) el.textContent = this._countdown(this._launchMs);
+  }
+
+  // Page mission chargée à la demande (content.spacex.com autorise CORS), cache mémoire 6 h.
+  _loadDetails(link) {
+    this._details = this._details || {};
+    this._fetching = this._fetching || {};
+    const ts = this._fetching[link];
+    if (this._details[link] || (ts && Date.now() - ts < 6 * 3600 * 1000)) return;
+    this._fetching[link] = Date.now();
+    fetch(`https://content.spacex.com/api/spacex-website/missions/${encodeURIComponent(link)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p) => { this._details[link] = parseMission(p); this._render(); })
+      .catch(() => { this._details[link] = {}; this._render(); });
   }
 
   connectedCallback() {
@@ -184,13 +238,13 @@ class StarshipTrackerCard extends HTMLElement {
       ? { provider: "Fournisseur", vehicle: "Véhicule", pad: "Rampe de lancement", location: "Emplacement", date: "Date cible",
           window: "Fenêtre de lancement", dateSource: "Source de la date", sourceFeed: "Flux", sourcePage: "Page mission",
           countdown: "Compte à rebours", tags: "Tags", live: "EN DIRECT", nolive: "Pas de live en cours", watch: "Regarder",
-          news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", hide: "Masquer les détails", status: "Statut", page: "Page mission spacex.com", webcast: "Webcast", links: "Liens", nodesc: "Pas de description disponible", bSoon: "À VENIR", bLive: "DIRECT", bDone: "TERMINÉ", none: "Aucune mission annoncée",
+          news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", hide: "Masquer les détails", status: "Statut", page: "Page mission spacex.com", webcast: "Webcast", links: "Liens", nodesc: "Pas de description disponible", bSoon: "À VENIR", watchVideo: "Voir la vidéo", plan: "Plan de vol", cdTitle: "COMPTE À REBOURS", tlTitle: "CHRONOLOGIE DU VOL", approx: "Horaires approximatifs", loading: "Chargement des détails…", bLive: "DIRECT", bDone: "TERMINÉ", none: "Aucune mission annoncée",
           upcoming: "Prochaines missions Starship", past: "Derniers vols Starship", video: "▶ Vidéo", nomission: "Aucune",
           s1: "Missions terminées", s2: "Atterrissages totaux", s3: "Réutilisations totales" }
       : { provider: "Provider", vehicle: "Vehicle", pad: "Launch Pad", location: "Location", date: "Target Date",
           window: "Launch window", dateSource: "Date source", sourceFeed: "Feed", sourcePage: "Mission page",
           countdown: "Countdown", tags: "Tags", live: "LIVE", nolive: "No live stream", watch: "Watch",
-          news: "Starship news", nonews: "No news", details: "Details", hide: "Hide details", status: "Status", page: "spacex.com mission page", webcast: "Webcast", links: "Links", nodesc: "No description available", bSoon: "UPCOMING", bLive: "LIVE", bDone: "COMPLETED", none: "No mission announced",
+          news: "Starship news", nonews: "No news", details: "Details", hide: "Hide details", status: "Status", page: "spacex.com mission page", webcast: "Webcast", links: "Links", nodesc: "No description available", bSoon: "UPCOMING", watchVideo: "Watch video", plan: "Flight plan", cdTitle: "COUNTDOWN", tlTitle: "FLIGHT TIMELINE", approx: "All times approximate", loading: "Loading details…", bLive: "LIVE", bDone: "COMPLETED", none: "No mission announced",
           upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None",
           s1: "Completed missions", s2: "Total landings", s3: "Total reflights" };
 
@@ -267,23 +321,51 @@ class StarshipTrackerCard extends HTMLElement {
       if (ms) return new Date(ms).toLocaleString(lang, { weekday: "long", day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
       return m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "long", year: "numeric" }) : "TBD";
     };
-    const allM = [...(ma.upcoming || []), ...[...(ma.past || [])].reverse()];
+    const allM = [...(ma.upcoming || []), ...(ma.past || [])];
     const sel = this._sel ? allM.find((m) => (m.link || m.mission) === this._sel) : null;
     const isNextSel = !sel || (a.link && sel.link === a.link);
+    if (sel && !isNextSel && sel.link) this._loadDetails(sel.link);
+    const embedOk = (u) => /^https:\/\/(www\.youtube-nocookie\.com|www\.youtube\.com)\/embed\//.test(u || "");
+    const videoHtml = (vids) => (vids || []).slice(0, 3).map((v) => {
+      const u = safeUrl(v.url);
+      if (!u) return "";
+      if (v.type === "youtube" && embedOk(v.embed)) {
+        return `<div class="vid"><iframe src="${esc(v.embed)}" title="video" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`;
+      }
+      if (v.type === "file") return `<div class="vid"><video src="${esc(u)}" controls preload="none" playsinline></video></div>`;
+      return `<a class="play" href="${esc(u)}" target="_blank" rel="noopener">▶ ${esc(L.watchVideo)} (${esc(host(u))})</a>`;
+    }).join("");
+    const tl = (key, title, list) => (list || []).length ? `<details class="tl" data-sec="${key}" ${this._secs.has(key) ? "open" : ""}>
+        <summary>${esc(title)}</summary>
+        <div class="tlh"><span>HR/MIN/SEC</span><span>EVENT</span></div>
+        ${list.map(([t, d]) => `<div class="tlr"><span class="tlt">${esc(t)}</span><span>${esc(d)}</span></div>`).join("")}
+        <div class="tld">${esc(L.approx)}</div>
+      </details>` : "";
     const panelOf = (m, isNext) => {
-      const pimg = safeUrl(isNext ? a.mission_image : null) || safeUrl(m.image);
+      const D = isNext ? a : (this._details[m.link] || {});
+      const loading = !isNext && m.link && !this._details[m.link];
+      const pimg = safeUrl(D.mission_image) || safeUrl(m.image);
       const wm = Number(m.launch_window_minutes);
       const st = isNext ? statusText : (m.mission_status || "—");
-      const plinks = (isNext ? casts : [m.video_url, m.url].map(safeUrl).filter(Boolean).filter((u, i, arr) => arr.indexOf(u) === i));
+      const dtext = isNext ? desc : String(D.mission_description || "").split(/\n{2,}/).filter((p) => p.trim()).map((p) => `<p>${esc(p)}</p>`).join("");
+      const plinks = [...(isNext ? casts : []), ...(D.webcast_links || []), m.video_url, m.url].map(safeUrl).filter(Boolean)
+        .filter((u, i, arr) => arr.indexOf(u) === i).slice(0, 8);
       const page = safeUrl(isNext ? murl : m.url) || url;
+      const info = safeUrl(D.mission_infographic);
+      const infoM = safeUrl(D.mission_infographic_mobile);
       return `<div class="panel">
-        ${pimg ? `<img class="mimg" src="${esc(pimg)}" alt="${esc(m.mission)}" loading="lazy" decoding="async" width="1000" height="563">` : ""}
+        ${pimg ? `<img class="mimg" src="${esc(pimg)}" alt="${esc(m.mission)}" decoding="async" width="1000" height="563">` : ""}
         <div class="ptitle">${esc(m.mission)}</div>
         ${row(L.date, esc(isNext ? fullDate : fmtDate(m)))}
         ${Number.isInteger(wm) && wm > 0 ? row(L.window, esc(wm + " min")) : ""}
         ${row(L.pad, esc(m.launch_site || "Starbase"))}
         ${row(L.status, esc(st))}
-        ${isNext ? `<div class="desc">${desc}</div>` : ""}
+        ${C.show_videos ? videoHtml(D.mission_videos) : ""}
+        ${loading ? `<div class="muted0">${esc(L.loading)}</div>` : ""}
+        ${dtext ? `<div class="desc">${dtext}</div>` : (isNext ? "" : "")}
+        ${info ? `<div class="sech">${esc(L.plan)}</div><a href="${esc(info)}" target="_blank" rel="noopener"><picture>${infoM ? `<source media="(max-width: 600px)" srcset="${esc(infoM)}">` : ""}<img class="info" src="${esc(info)}" alt="${esc(L.plan)}" decoding="async" width="1000" height="522"></picture></a>` : ""}
+        ${tl("cd", L.cdTitle, D.mission_countdown)}
+        ${tl("tl", L.tlTitle, D.mission_timeline)}
         ${C.show_videos && plinks.length ? `<div class="row"><span class="k">${L.links}:</span> ${plinks.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</div>` : ""}
         <div class="row"><a href="${esc(page)}" target="_blank" rel="noopener">${L.page} →</a></div>
       </div>`;
@@ -299,7 +381,7 @@ class StarshipTrackerCard extends HTMLElement {
           const im = safeUrl(m.image);
           const d = m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "TBD";
           return `<div class="tile ${cls}" data-key="${esc(m.link || m.mission)}" role="button" tabindex="0">
-            <div class="timg" ${im ? `style="background-image:url('${esc(im)}')"` : ""}><span class="badge ${cls}">${esc(lbl)}</span></div>
+            <div class="timg">${im ? `<img src="${esc(im)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge ${cls}">${esc(lbl)}</span></div>
             <div class="tt">${esc(m.mission)}</div>
             <div class="ts">${esc(d)}${m.launch_site ? " · " + esc(m.launch_site) : ""}</div>
             <div class="bar ${cls}"></div>
@@ -335,10 +417,24 @@ class StarshipTrackerCard extends HTMLElement {
         .desc p { margin: 6px 0; line-height: 1.4; }
         .muted0 { color: var(--secondary-text-color); }
         .car { position: relative; margin: 12px 0 4px; }
-        .track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; padding-bottom: 2px; }
+        .track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
         .track::-webkit-scrollbar { display: none; }
-        .tile { flex: 0 0 calc(50% - 6px); scroll-snap-align: start; cursor: pointer; border-radius: 14px; overflow: hidden; background: var(--secondary-background-color); position: relative; }
-        .timg { aspect-ratio: 16 / 9; background: #111 center / cover no-repeat; position: relative; border-radius: 14px 14px 0 0; }
+        .tile { flex: 0 0 auto; width: calc(50% - 6px); min-width: 200px; max-width: 340px; box-sizing: border-box; scroll-snap-align: start; cursor: pointer; border-radius: 14px; overflow: hidden; background: var(--secondary-background-color); position: relative; }
+        .timg { aspect-ratio: 16 / 9; width: 100%; background: #1a1a1a; position: relative; border-radius: 14px 14px 0 0; overflow: hidden; }
+        .timg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .badge { z-index: 1; }
+        @media (max-width: 600px) { .tile { width: 82%; min-width: 0; } }
+        .vid { position: relative; aspect-ratio: 16 / 9; margin: 8px 0; border-radius: 8px; overflow: hidden; background: #000; }
+        .vid iframe, .vid video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+        .play { display: inline-block; margin: 8px 0; padding: 8px 14px; border-radius: 18px; background: #000; color: #fff; font-weight: 600; }
+        .sech { margin: 12px 0 6px; font-weight: 700; letter-spacing: .08em; font-size: .85em; }
+        .info { width: 100%; height: auto; aspect-ratio: 1000 / 522; object-fit: contain; display: block; border-radius: 6px; background: #000; }
+        .tl { margin: 10px 0; font-family: "D-DIN", "Roboto Mono", ui-monospace, monospace; font-size: .85em; }
+        .tl summary { cursor: pointer; font-weight: 700; letter-spacing: .12em; padding: 6px 0; }
+        .tlh, .tlr { display: grid; grid-template-columns: 84px 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--divider-color, #444); }
+        .tlh { color: var(--secondary-text-color); font-size: .8em; letter-spacing: .1em; }
+        .tlt { font-variant-numeric: tabular-nums; }
+        .tld { color: var(--secondary-text-color); font-size: .75em; padding-top: 6px; text-transform: uppercase; }
         .badge { position: absolute; top: 8px; right: 8px; padding: 3px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 700; color: #fff; letter-spacing: .04em; }
         .badge.soon, .bar.soon { background: #1e88e5; }
         .badge.live, .bar.live { background: #d32f2f; }
@@ -380,9 +476,13 @@ class StarshipTrackerCard extends HTMLElement {
       if (this._open && this._sel) { this._sel = null; } else { this._open = !this._open; this._sel = null; }
       this._render();
     });
+    this.shadowRoot.querySelectorAll("details.tl").forEach((d) => d.addEventListener("toggle", () => {
+      if (d.open) this._secs.add(d.dataset.sec); else this._secs.delete(d.dataset.sec);
+    }));
     const track = this.shadowRoot.querySelector(".track");
     if (track) {
-      track.style.scrollBehavior = "auto"; track.scrollLeft = keepScroll; track.style.scrollBehavior = "";
+      track.scrollLeft = keepScroll;
+      if (keepScroll) requestAnimationFrame(() => { track.scrollLeft = keepScroll; });
       const step = (dir) => track.scrollBy({ left: dir * track.clientWidth * 0.9, behavior: "smooth" });
       this.shadowRoot.querySelector(".arr.l").addEventListener("click", (ev) => { ev.stopPropagation(); step(-1); });
       this.shadowRoot.querySelector(".arr.r").addEventListener("click", (ev) => { ev.stopPropagation(); step(1); });
