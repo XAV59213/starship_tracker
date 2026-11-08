@@ -149,6 +149,8 @@ class StarshipCountdownSensor(CoordinatorEntity[StarshipLiveCoordinator], Sensor
             "mission": nxt.get("mission"),
             "launch_site": nxt.get("launch_site"),
             "url": nxt.get("url"),
+            "date_source": nxt.get("date_source"),
+            "launch_window_minutes": nxt.get("launch_window_minutes"),
             "last_check": self.coordinator.data.last_check.isoformat(),
         }
         if launch:
@@ -238,7 +240,22 @@ class StarshipMissionsSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorE
         past: list[dict[str, Any]] = []
         upcoming: list[dict[str, Any]] = []
         for m in self.coordinator.data.missions or []:
-            item = {k: m.get(k) for k in ("mission", "launch_date", "launch_time", "launch_site", "mission_status", "url", "video_url", "call_to_action", "is_live")}
+            item = {
+                k: m.get(k)
+                for k in (
+                    "mission",
+                    "launch_date",
+                    "launch_time",
+                    "launch_site",
+                    "mission_status",
+                    "url",
+                    "video_url",
+                    "call_to_action",
+                    "is_live",
+                    "date_source",
+                    "launch_window_minutes",
+                )
+            }
             (past if m.get("mission_status") == "final" else upcoming).append(item)
         return past, upcoming
 

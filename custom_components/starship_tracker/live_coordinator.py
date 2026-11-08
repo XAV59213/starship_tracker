@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
 
@@ -14,7 +15,23 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, EVENT_LAUNCH_SOON, EVENT_LIVE_ENDED, EVENT_LIVE_STARTED, LAUNCH_SOON_WINDOW, LIVE_URL, SCAN_INTERVAL_LIVE, SCAN_INTERVAL_ALL_LAUNCHES, SPACEX_ALL_TILES_URL, SPACEX_LAUNCH_URL, SPACEX_TILES_URL, TRACKED_VEHICLE
+from .const import (
+    DOMAIN,
+    EVENT_LAUNCH_SOON,
+    EVENT_LIVE_ENDED,
+    EVENT_LIVE_STARTED,
+    LAUNCH_SOON_WINDOW,
+    LIVE_URL,
+    SCAN_INTERVAL_ALL_LAUNCHES,
+    SCAN_INTERVAL_LIVE,
+    SCAN_INTERVAL_MISSION_PAGE,
+    SPACEX_ALL_TILES_URL,
+    SPACEX_LAUNCH_URL,
+    SPACEX_MISSION_URL,
+    SPACEX_TILES_URL,
+    TRACKED_VEHICLE,
+)
+from .mission_date import ParsedLaunch, apply_launch_fields, parse_mission_page, tile_needs_mission_page, tile_sort_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,9 +52,13 @@ class LiveStatus:
     missions: list[dict[str, Any]] | None = None
 
 
-def _mission(tile: dict[str, Any]) -> dict[str, Any]:
+def _mission(
+    tile: dict[str, Any],
+    schedules: dict[str, ParsedLaunch | None] | None = None,
+) -> dict[str, Any]:
     link = tile.get("link")
-    return {
+    parsed = schedules.get(link) if schedules is not None and link else None
+    mission = {
         "mission": tile.get("title"),
         "launch_date": tile.get("launchDate"),
         "launch_time": tile.get("launchTime"),
@@ -52,6 +73,7 @@ def _mission(tile: dict[str, Any]) -> dict[str, Any]:
         "call_to_action": tile.get("callToAction"),
         "is_live": bool(tile.get("isLive")),
     }
+    return apply_launch_fields(mission, tile, parsed)
 
 
 def launch_datetime(mission: dict[str, Any] | None) -> datetime | None:
@@ -88,28 +110,43 @@ def _last_flight(tiles: list[dict[str, Any]]) -> dict[str, Any] | None:
     return _mission(max(done, key=lambda t: (t["launchDate"], t.get("launchTime") or "")))
 
 
-def _missions(tiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _schedules_for(
+    tile: dict[str, Any], schedules: dict[str, ParsedLaunch | None] | None
+) -> ParsedLaunch | None:
+    link = tile.get("link")
+    if schedules is None or not link:
+        return None
+    return schedules.get(link)
+
+
+def _missions(
+    tiles: list[dict[str, Any]],
+    schedules: dict[str, ParsedLaunch | None] | None = None,
+) -> list[dict[str, Any]]:
     """Toutes les missions Starship (passées + à venir), dédoublonnées, triées par date."""
     seen: dict[Any, dict[str, Any]] = {}
     for t in tiles:
         if _is_starship(t):
             seen.setdefault(t.get("link") or t.get("title"), t)
-    ordered = sorted(seen.values(), key=lambda t: (t.get("launchDate") or "9999", t.get("launchTime") or ""))
-    return [_mission(t) for t in ordered]
+    ordered = sorted(seen.values(), key=lambda t: tile_sort_key(t, _schedules_for(t, schedules)))
+    return [_mission(t, schedules) for t in ordered]
 
 
-def _parse(tiles: list[dict[str, Any]]) -> LiveStatus:
+def _parse(
+    tiles: list[dict[str, Any]],
+    schedules: dict[str, ParsedLaunch | None] | None = None,
+) -> LiveStatus:
     now = dt_util.utcnow()
     starship = sorted(
         (t for t in tiles if _is_starship(t)),
-        key=lambda t: (t.get("launchDate") or "9999", t.get("launchTime") or ""),
+        key=lambda t: tile_sort_key(t, _schedules_for(t, schedules)),
     )
     # Priorité à une mission en live, sinon la prochaine mission Starship
     tile = next((t for t in starship if t.get("isLive")), starship[0] if starship else None)
-    next_mission = _mission(starship[0]) if starship else None
+    next_mission = _mission(starship[0], schedules) if starship else None
     if tile is None:
         return LiveStatus(False, LIVE_URL, None, None, None, None, now, None)
-    current = _mission(tile)
+    current = _mission(tile, schedules)
     return LiveStatus(
         is_live=bool(tile.get("isLive")),
         url=current["url"],
@@ -134,6 +171,19 @@ async def async_fetch_tiles(session: aiohttp.ClientSession, url: str, timeout: i
     return data
 
 
+async def async_fetch_mission(session: aiohttp.ClientSession, link: str) -> dict[str, Any]:
+    """Lit la page mission ``/missions/{link}`` (prose de la date de lancement)."""
+    url = SPACEX_MISSION_URL.format(link=quote(str(link), safe="-._~"))
+    async with asyncio.timeout(20):
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                raise UpdateFailed(f"spacex.com a répondu {resp.status} pour {link}")
+            data = await resp.json(content_type=None)
+    if not isinstance(data, dict):
+        raise UpdateFailed(f"Format de page mission inattendu pour {link}")
+    return data
+
+
 async def async_fetch_live(session: aiohttp.ClientSession) -> LiveStatus:
     """Lit les tuiles « upcoming » du site spacex.com."""
     return _parse(await async_fetch_tiles(session, SPACEX_TILES_URL))
@@ -152,6 +202,8 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         # Tuiles Starship de la page /launches complète (flux lourd, rafraîchi toutes les 6 h)
         self._all_starship: list[dict[str, Any]] | None = None
         self._all_checked: datetime | None = None
+        # link -> (fetch UTC, date extraite). Rafraîchi au plus toutes les 30 min.
+        self._mission_cache: dict[str, tuple[datetime, ParsedLaunch | None]] = {}
 
     async def _async_update_data(self) -> LiveStatus:
         upcoming: list[dict[str, Any]] | None = None
@@ -169,12 +221,55 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
             t for t in self._all_starship or []
             if t.get("missionStatus") != "final" and t.get("link") not in known
         ]
-        status = _parse(tiles)
+        combined = tiles + (self._all_starship or [])
+        schedules = await self._async_load_schedules(combined)
+        status = _parse(tiles, schedules)
         status.last_flight = _last_flight(self._all_starship or [])
-        status.missions = _missions(tiles + (self._all_starship or []))
+        status.missions = _missions(combined, schedules)
         self._fire_transition(status)
         self._fire_launch_soon(status)
         return status
+
+    async def _async_load_schedules(self, tiles: list[dict[str, Any]]) -> dict[str, ParsedLaunch | None]:
+        """Pages mission des tuiles Starship sans date de flux."""
+        links: list[str] = []
+        for tile in tiles:
+            if not _is_starship(tile) or not tile_needs_mission_page(tile):
+                continue
+            link = tile.get("link")
+            if isinstance(link, str) and link not in links:
+                links.append(link)
+        if not links:
+            return {}
+        parsed = await asyncio.gather(*(self._async_cached_mission(link) for link in links))
+        return dict(zip(links, parsed, strict=True))
+
+    async def _async_cached_mission(self, link: str) -> ParsedLaunch | None:
+        """Récupère la page mission, au plus une fois toutes les 30 minutes."""
+        now = dt_util.utcnow()
+        cached = self._mission_cache.get(link)
+        if cached is not None and now - cached[0] < SCAN_INTERVAL_MISSION_PAGE:
+            return cached[1]
+        previous = cached[1] if cached else None
+        try:
+            payload = await async_fetch_mission(self._session, link)
+            parsed = parse_mission_page(payload, now=now)
+        except (aiohttp.ClientError, TimeoutError, ValueError, UpdateFailed) as err:
+            _LOGGER.debug("Page mission %s indisponible : %s", link, err)
+            parsed = previous
+        except Exception:
+            _LOGGER.exception("Analyse de la page mission %s impossible", link)
+            parsed = previous
+        else:
+            if parsed is not None and parsed.when is not None:
+                _LOGGER.debug(
+                    "Date de %s lue sur la page mission : %s (fenêtre %s min)",
+                    link,
+                    parsed.when.isoformat(),
+                    parsed.launch_window_minutes,
+                )
+        self._mission_cache[link] = (now, parsed)
+        return parsed
 
     async def _async_refresh_all(self, force: bool = False) -> None:
         """Met à jour le cache du flux complet /launches (dernier vol, missions en cours)."""

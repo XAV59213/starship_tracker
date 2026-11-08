@@ -15,7 +15,7 @@ cards:
       **Vehicle:** {{ state_attr(m, 'vehicle') or 'Starship' }}<br>
       **Launch Pad:** {{ state_attr(m, 'launch_site') or 'Starbase' }}<br>
       **Location:** Starbase, Texas, United States<br>
-      **Target Date:** {{ state_attr(m, 'launch_date') or 'TBD' }} {{ state_attr(m, 'launch_time') or '' }}<br>
+      **Target Date:** {{ state_attr(m, 'launch_date') or 'TBD' }} {{ state_attr(m, 'launch_time') or '' }}{% if state_attr(m, 'launch_window_minutes') %} · {{ state_attr(m, 'launch_window_minutes') }} min{% endif %}<br>
       **Countdown:** {{ state_attr(c, 'countdown') or '—' }}{% if state_attr(c, 'launched') %} (lancé / launched){% endif %}<br>
       **Tags:** {{ state_attr(m, 'mission_type') or 'Test flight' }} | {{ state_attr(m, 'mission_status') or 'Upcoming' }} |
 
