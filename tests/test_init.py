@@ -73,3 +73,25 @@ async def test_invalid_key_starts_reauth(hass: HomeAssistant) -> None:
     await _setup(hass, entry, _patches(news=AsyncMock(side_effect=InvalidApiKey)))
     flows = hass.config_entries.flow.async_progress()
     assert any(f["context"]["source"] == "reauth" for f in flows)
+
+
+async def test_youtube_sensors_and_independent_failure(hass: HomeAssistant) -> None:
+    channel = "UC" + "a" * 22
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_API_KEY: "k"}, options={
+        "youtube_channel_fr": channel, "youtube_channel_en": "UC" + "b" * 22,
+    })
+    entry.add_to_hass(hass)
+    video = {"video_id": "aaaaaaaaaaa", "title": "Starship " + "x" * 300,
+             "url": "https://www.youtube.com/watch?v=aaaaaaaaaaa", "published": "2026-11-08T10:00:00+00:00",
+             "thumbnail": "https://i.ytimg.com/vi/aaaaaaaaaaa/hqdefault.jpg"}
+    with patch(f"{P}.youtube_coordinator.async_fetch_feed", AsyncMock(side_effect=[[video], TimeoutError])):
+        await _setup(hass, entry, _patches())
+    assert entry.state is ConfigEntryState.LOADED
+    fr = hass.states.get('sensor.starship_tracker_youtube_fr')
+    en = hass.states.get('sensor.starship_tracker_youtube_en')
+    assert fr is not None
+    assert fr.state == video['title'][:255]
+    assert fr.attributes['title'] == video['title']
+    assert fr.attributes['channel'] == channel
+    assert en is not None and en.state == 'unavailable'
+    assert await hass.config_entries.async_unload(entry.entry_id)

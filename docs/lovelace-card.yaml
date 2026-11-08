@@ -1,5 +1,7 @@
 # Carte intégrée (recommandé) / Built-in card (recommended):
 #   type: custom:starship-tracker-card
+#   youtube_carousel_lang: auto # auto | fr | en | both ; langue HA par défaut / HA language by default
+#   show_youtube: true         # vidéos FR/EN des chaînes configurées / configured FR/EN channels
 #   show_carousel: true        # carrousel d'images / image carousel
 #   carousel_count: 25
 #   show_details_button: true   # bouton « Détails » (photo + infos) / Details button

@@ -5,10 +5,10 @@ rules:
   action-setup:
     status: exempt
     comment: Aucune action de service enregistrée (seulement un bouton).
-  appropriate-polling: done  # 5 min live, 6 h flux complet, 30 min page mission / NewsAPI, 1 h compteurs
+  appropriate-polling: done  # 5 min live, 6 h flux complet, 30 min page mission / NewsAPI, 1 h compteurs, 10 min YouTube
   brands: done  # dossier brand/ (icon, logo, dark_*, @2x) — HA 2026.3+
-  common-modules: done  # coordinator.py, live_coordinator.py, stats_coordinator.py, mission_date.py
-  config-flow-test-coverage: done  # tests/test_config_flow.py : 100 %
+  common-modules: done  # coordinator.py, live_coordinator.py, stats_coordinator.py, youtube_coordinator.py, mission_date.py
+  config-flow-test-coverage: done  # tests/test_config_flow.py : étapes et validation YouTube couvertes
   config-flow: done  # data_description pour la clé NewsAPI
   dependency-transparency:
     status: exempt
@@ -39,7 +39,7 @@ rules:
   log-when-unavailable: done  # DataUpdateCoordinator : un seul log à la perte / au retour
   parallel-updates: done  # sensor / binary_sensor : 0, button : 1
   reauthentication-flow: done  # clé NewsAPI refusée → ConfigEntryAuthFailed → reauth_confirm
-  test-coverage: done  # ~96 % (pytest-homeassistant-custom-component)
+  test-coverage: done  # pytest-homeassistant-custom-component (dont RSS / événements YouTube)
 
   # ---------- Gold ----------
   devices: done  # un appareil service « Starship Tracker »

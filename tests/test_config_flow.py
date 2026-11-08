@@ -97,3 +97,41 @@ async def test_options_flow(hass: HomeAssistant, mock_setup) -> None:
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.data[CONF_API_KEY] == "new"
     assert entry.options == {"translate_fr": False}
+
+
+@pytest.mark.parametrize(("exc", "error"), [(ValueError, "invalid_youtube_channel"), (TimeoutError, "youtube_cannot_connect")])
+async def test_youtube_user_validation(hass, mock_setup, exc, error):
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    with patch(FETCH, AsyncMock(return_value=[])), patch("custom_components.starship_tracker.config_flow.async_resolve_channel", AsyncMock(side_effect=exc)):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_API_KEY: "k", "youtube_channel_fr": "@Example"})
+    assert result["errors"] == {"youtube_channel_fr": error}
+    channel = "UC" + "a" * 22
+    with patch(FETCH, AsyncMock(return_value=[])), patch("custom_components.starship_tracker.config_flow.async_resolve_channel", AsyncMock(return_value=channel)):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_API_KEY: "k", "youtube_channel_fr": "@Example", "youtube_keyword": " Starship "})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["youtube_channel_fr"] == channel
+    assert result["data"]["youtube_keyword"] == "Starship"
+
+
+async def test_youtube_options_clear_and_keep_ids(hass, mock_setup):
+    channel = "UC" + "a" * 22
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_API_KEY: "k", "youtube_channel_fr": channel})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    with patch(FETCH, AsyncMock(return_value=[])):
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_API_KEY: "k", "youtube_channel_en": "wrong"})
+    assert result["errors"] == {"youtube_channel_en": "invalid_youtube_channel"}
+    with patch(FETCH, AsyncMock(return_value=[])):
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_API_KEY: "k", "youtube_channel_fr": "", "youtube_channel_en": channel, "youtube_keyword": ""})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options["youtube_channel_fr"] == ""
+    assert entry.options["youtube_channel_en"] == channel
+    assert entry.options["youtube_keyword"] == ""
+
+
+async def test_youtube_suggested_defaults(hass, mock_setup):
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    suggestions = {key.schema: key.description.get("suggested_value") for key in result["data_schema"].schema if key.description}
+    assert suggestions["youtube_channel_fr"] == "@UFOTINIK"
+    assert suggestions["youtube_channel_en"] == "@NASASpaceflight"
+    assert suggestions["youtube_keyword"] == "starship"

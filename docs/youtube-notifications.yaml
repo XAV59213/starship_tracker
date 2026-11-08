@@ -1,0 +1,19 @@
+# Configuration > Automatisations > Créer > Modifier en YAML.
+# FR: remplacer le service notify par celui du téléphone. EN: replace notify service.
+# Pour l'anglais / For English: change language: fr to language: en.
+alias: "Starship - vidéo YouTube FR"
+triggers:
+  - trigger: event
+    event_type: starship_tracker_youtube_video
+    event_data:
+      language: fr
+actions:
+  - action: notify.mobile_app_mon_telephone
+    data:
+      title: "📺 Starship — YouTube FR"
+      message: "{{ trigger.event.data.title }}"
+      data:
+        url: "{{ trigger.event.data.url }}"
+        clickAction: "{{ trigger.event.data.url }}"
+mode: queued
+max: 20

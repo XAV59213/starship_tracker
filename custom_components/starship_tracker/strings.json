@@ -5,10 +5,16 @@
         "title": "Starship Tracker",
         "description": "Enter your free NewsAPI key, available at {register_url}.",
         "data": {
-          "api_key": "NewsAPI key"
+          "api_key": "NewsAPI key",
+          "youtube_channel_fr": "French YouTube channel (optional)",
+          "youtube_channel_en": "English / American YouTube channel (optional)",
+          "youtube_keyword": "YouTube keyword"
         },
         "data_description": {
-          "api_key": "Free key from newsapi.org, used only for the Starship news sensor."
+          "api_key": "Free key from newsapi.org, used only for the Starship news sensor.",
+          "youtube_channel_fr": "Channel URL, @handle or UC… ID; suggested: @UFOTINIK. Empty to disable.",
+          "youtube_channel_en": "Channel URL, @handle or UC… ID; suggested: @NASASpaceflight. Empty to disable.",
+          "youtube_keyword": "Same case-insensitive title filter for FR and EN; defaults to starship, empty for all videos."
         }
       },
       "reauth_confirm": {
@@ -35,7 +41,9 @@
     "error": {
       "invalid_auth": "Invalid API key",
       "cannot_connect": "Failed to connect to NewsAPI",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "invalid_youtube_channel": "Invalid or unresolved YouTube channel. Try its UC… ID.",
+      "youtube_cannot_connect": "Cannot reach YouTube. Retry or use a UC… ID."
     },
     "abort": {
       "already_configured": "Starship Tracker is already configured",
@@ -90,6 +98,12 @@
       },
       "total_reflights": {
         "name": "SpaceX total reflights"
+      },
+      "youtube_fr": {
+        "name": "YouTube FR"
+      },
+      "youtube_en": {
+        "name": "YouTube EN"
       }
     },
     "button": {
@@ -105,18 +119,26 @@
         "description": "Enter a new NewsAPI key (available at {register_url}). The integration reloads after saving.",
         "data": {
           "api_key": "NewsAPI key",
-          "translate_fr": "Translate SpaceX content to French"
+          "translate_fr": "Translate SpaceX content to French",
+          "youtube_channel_fr": "French YouTube channel (optional)",
+          "youtube_channel_en": "English / American YouTube channel (optional)",
+          "youtube_keyword": "YouTube keyword"
         },
         "data_description": {
           "api_key": "Free key from newsapi.org, used only for the Starship news sensor.",
-          "translate_fr": "Mission titles, status, description and timeline in French (free keyless translation, cached; original text kept on failure)."
+          "translate_fr": "Mission titles, status, description and timeline in French (free keyless translation, cached; original text kept on failure).",
+          "youtube_channel_fr": "Channel URL, @handle or UC… ID; suggested: @UFOTINIK. Empty to disable.",
+          "youtube_channel_en": "Channel URL, @handle or UC… ID; suggested: @NASASpaceflight. Empty to disable.",
+          "youtube_keyword": "Same case-insensitive title filter for FR and EN; defaults to starship, empty for all videos."
         }
       }
     },
     "error": {
       "invalid_auth": "Invalid API key",
       "cannot_connect": "Failed to connect to NewsAPI",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "invalid_youtube_channel": "Invalid or unresolved YouTube channel. Try its UC… ID.",
+      "youtube_cannot_connect": "Cannot reach YouTube. Retry or use a UC… ID."
     }
   },
   "exceptions": {
