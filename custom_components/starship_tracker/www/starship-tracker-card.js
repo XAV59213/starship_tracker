@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.13.0";
+const CARD_VERSION = "1.13.1";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -92,16 +92,47 @@ class StarshipTrackerCard extends HTMLElement {
     this._config.carousel_count = Math.max(1, Number(this._config.carousel_count) || DEFAULTS.carousel_count);
     this._config.missions_count = Math.max(1, Number(this._config.missions_count) || DEFAULTS.missions_count);
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+    this._sig = null;
+    this._startTimer();
+    if (this._hass) this._render();
+  }
+
+  // Le compte à rebours est mis à jour en place (pas de reconstruction du DOM).
+  _startTimer() {
     this._timer && clearInterval(this._timer);
-    this._timer = setInterval(() => this._render(), 30000);
+    this._timer = setInterval(() => this._tick(), 30000);
+  }
+
+  _tick() {
+    const el = this.shadowRoot && this.shadowRoot.querySelector(".cd");
+    if (el && this._launchMs) el.textContent = this._countdown(this._launchMs);
+  }
+
+  connectedCallback() {
+    if (this._config) this._startTimer();
   }
 
   disconnectedCallback() {
     this._timer && clearInterval(this._timer);
+    this._timer = null;
+  }
+
+  // HA appelle « set hass » à chaque changement d'état de toute la maison :
+  // on ne redessine que si les entités Starship (ou la langue) ont changé.
+  _signature(hass) {
+    const parts = [hass.locale?.language || hass.language || ""];
+    for (const key of Object.keys(KEYS)) {
+      const st = hass.states[this._entity(key)];
+      parts.push(st ? [st.state, st.last_updated, st.last_changed] : null);
+    }
+    return JSON.stringify(parts);
   }
 
   set hass(hass) {
     this._hass = hass;
+    const sig = this._signature(hass);
+    if (sig === this._sig) return;
+    this._sig = sig;
     this._render();
   }
 
@@ -173,6 +204,7 @@ class StarshipTrackerCard extends HTMLElement {
     const cd = this._state("countdown");
     const url = safeUrl(a.url) || safeUrl(live?.attributes?.url) || "https://www.spacex.com/vehicles/starship";
     const launchMs = this._instant(cd, a);
+    this._launchMs = launchMs;
     let date = a.launch_date || "TBD";
     if (launchMs) {
       date = new Date(launchMs).toLocaleString(lang, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -245,7 +277,7 @@ class StarshipTrackerCard extends HTMLElement {
       const plinks = (isNext ? casts : [m.video_url, m.url].map(safeUrl).filter(Boolean).filter((u, i, arr) => arr.indexOf(u) === i));
       const page = safeUrl(isNext ? murl : m.url) || url;
       return `<div class="panel">
-        ${pimg ? `<img class="mimg" src="${esc(pimg)}" alt="${esc(m.mission)}" loading="lazy">` : ""}
+        ${pimg ? `<img class="mimg" src="${esc(pimg)}" alt="${esc(m.mission)}" loading="lazy" decoding="async" width="1000" height="563">` : ""}
         <div class="ptitle">${esc(m.mission)}</div>
         ${row(L.date, esc(isNext ? fullDate : fmtDate(m)))}
         ${Number.isInteger(wm) && wm > 0 ? row(L.window, esc(wm + " min")) : ""}
@@ -298,7 +330,7 @@ class StarshipTrackerCard extends HTMLElement {
         .sv { font-size: 1.6em; font-weight: 700; }
         .dbtn { margin-top: 8px; padding: 6px 14px; border: none; border-radius: 16px; cursor: pointer; background: var(--primary-color); color: var(--text-primary-color, #fff); font-weight: 600; }
         .panel { margin-top: 10px; padding: 10px; border-radius: 8px; background: var(--secondary-background-color); }
-        .mimg { width: 100%; border-radius: 6px; display: block; margin-bottom: 8px; }
+        .mimg { width: 100%; aspect-ratio: 16 / 9; height: auto; object-fit: cover; border-radius: 6px; display: block; margin-bottom: 8px; background: #111; }
         .ptitle { font-weight: 700; font-size: 1.1em; margin-bottom: 4px; }
         .desc p { margin: 6px 0; line-height: 1.4; }
         .muted0 { color: var(--secondary-text-color); }

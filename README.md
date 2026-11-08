@@ -25,7 +25,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.13.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.13.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -99,6 +99,8 @@ Integration icons and logos live in `custom_components/starship_tracker/brand/` 
 used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
+
+**1.13.1** : correction de la page qui « saute » sur la carte : la carte ne se redessine plus à chaque mise à jour de Home Assistant (seulement si une entité Starship change), le compte à rebours est mis à jour en place, l'image du panneau Détails réserve sa place (16/9), état du panneau et défilement du carrousel conservés.
 
 **1.13.0** : bouton « Détails » sur la carte (option `show_details_button`, affiché par défaut) qui déplie la photo de la mission, la date/heure locale, la fenêtre, la rampe, le statut, la description et les liens (webcast, page spacex.com). La page mission de la prochaine mission est toujours lue (cache 30 min) ; carrousel d'images (`show_carousel`, `carousel_count`) des missions Starship à venir et passées avec badge À VENIR / DIRECT / TERMINÉ ; un clic ouvre le panneau Détails de la mission ; attribut `image` dans les listes du capteur missions (images du flux /launches, sans requête en plus) ; nouveaux attributs du capteur prochaine mission : `mission_image` (URL absolue), `mission_description` (texte, 1500 caractères max), `mission_url`, `mission_links`, `webcast_links`.
 
@@ -208,8 +210,9 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.13.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.13.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
+- **1.13.1** — fix page jumping on the card: re-render only when a Starship entity changes (not on every `hass` update), countdown updated in place, Details image space reserved (16/9), panel state and carousel scroll kept.
 - **1.13.0** — card « Details » button (`show_details_button`, on by default) plus an image carousel (`show_carousel`, `carousel_count`) of upcoming + past Starship missions with UPCOMING / LIVE / COMPLETED badges — tap a tile for its details; `image` attribute in the missions lists — expanding the mission image, local date/time, window, pad, status, description and links. The next mission's page is always fetched (30 min cache); new next-mission attributes `mission_image`, `mission_description` (plain text, ≤1500 chars), `mission_url`, `mission_links`, `webcast_links`.
 - **1.12.0** — when a Starship tile has null `launchDate`, `launchTime` and `endDate`, the mission-page prose is parsed (cached 30 min) into a UTC timestamp for the countdown and the card. Flight 15: 4:45 p.m. CT on November 13, 2026 → `2026-11-13T22:45:00Z`. New attributes: `date_source` (`feed` / `mission_page`) and `launch_window_minutes`. Feed values still win when present.
 - **Starship live** (`binary_sensor`): `on` while a Starship mission is live on spacex.com (checked every 5 min, no key).
