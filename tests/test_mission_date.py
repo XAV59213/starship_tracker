@@ -248,3 +248,19 @@ def test_extract_mission_details_limits():
     d = extract_mission_details({"paragraphs": [{"content": "a" * 5000}]})
     assert len(d["mission_description"]) == mission_date.MISSION_DESCRIPTION_MAX
     assert extract_mission_details(None) == {}
+
+
+def test_video_infographic_timeline():
+    payload = {
+        "webcasts": [{"streamingVideoType": "x-live-studio", "videoId": "1qxvvenMPMQxB"},
+                     {"streamingVideoType": "youtube", "videoId": "-1wcilQ58hI&t"}],
+        "infographicDesktop": {"url": "/cms-assets/traj.jpg"},
+        "preLaunchTimeline": {"timelineEntries": [{"time": "00:50:00", "description": "Poll"}]},
+        "postLaunchTimeline": {"timelineEntries": [{"time": "00:00:00", "description": "Liftoff"}, {"time": "x", "description": ""}]},
+    }
+    d = extract_mission_details(payload)
+    assert d["mission_videos"][0] == {"type": "x", "url": "https://x.com/i/broadcasts/1qxvvenMPMQxB"}
+    assert d["mission_videos"][1]["embed"] == "https://www.youtube-nocookie.com/embed/-1wcilQ58hI"
+    assert d["mission_infographic"] == "https://content.spacex.com/cms-assets/traj.jpg"
+    assert d["mission_countdown"] == [["00:50:00", "Poll"]]
+    assert d["mission_timeline"] == [["00:00:00", "Liftoff"]]

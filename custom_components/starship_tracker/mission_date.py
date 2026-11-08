@@ -352,12 +352,79 @@ def extract_mission_details(payload: dict[str, Any] | None) -> dict[str, Any]:
             url = cast.get("url") or cast.get("link") or cast.get("videoUrl")
         elif isinstance(cast, str):
             url = cast
+        if url is None and isinstance(cast, dict):
+            video = webcast_video(cast)
+            url = video["url"] if video else None
         if isinstance(url, str) and url.startswith(("http://", "https://")) and url not in webcasts:
             webcasts.append(url)
+    videos = [v for v in (webcast_video(c) for c in payload.get("webcasts") or []) if v][:3]
+    file_url = _file_url(payload.get("videoDesktop")) or _file_url(payload.get("videoMobile"))
+    if file_url:
+        videos.insert(0, {"type": "file", "url": file_url, "embed": file_url})
     return {
         "mission_image": image_url(payload.get("imageDesktop")) or image_url(payload.get("imageMobile")),
         "mission_image_mobile": image_url(payload.get("imageMobile")),
         "mission_description": description or None,
         "mission_links": links[:8],
         "webcast_links": webcasts[:5],
+        "mission_videos": videos,
+        "mission_infographic": image_url(payload.get("infographicDesktop")),
+        "mission_infographic_mobile": image_url(payload.get("infographicMobile")),
+        "mission_countdown": timeline_entries(payload.get("preLaunchTimeline")),
+        "mission_timeline": timeline_entries(payload.get("postLaunchTimeline")),
     }
+
+
+TIMELINE_MAX_ENTRIES = 30
+TIMELINE_DESC_MAX = 160
+
+
+def timeline_entries(timeline: Any) -> list[list[str]]:
+    """``[[\"00:00:00\", \"Liftoff\"], ...]`` depuis un pre/postLaunchTimeline (taille bornée)."""
+    if not isinstance(timeline, dict):
+        return []
+    out: list[list[str]] = []
+    for entry in timeline.get("timelineEntries") or []:
+        if not isinstance(entry, dict):
+            continue
+        time = _plain(str(entry.get("time") or ""))[:16]
+        desc = _plain(str(entry.get("description") or ""))
+        if not desc:
+            continue
+        if len(desc) > TIMELINE_DESC_MAX:
+            desc = desc[: TIMELINE_DESC_MAX - 1].rstrip() + "…"
+        out.append([time, desc])
+        if len(out) >= TIMELINE_MAX_ENTRIES:
+            break
+    return out
+
+
+def _file_url(media: Any) -> str | None:
+    if not isinstance(media, dict):
+        return None
+    url = media.get("url")
+    if isinstance(url, str) and url.startswith("/"):
+        url = _CMS_BASE + url
+    return url if isinstance(url, str) and url.startswith(("http://", "https://")) else None
+
+
+def webcast_video(cast: Any) -> dict[str, str] | None:
+    """Lien (et embed YouTube) d'un webcast ``{streamingVideoType, videoId}``."""
+    if not isinstance(cast, dict):
+        return None
+    vid = str(cast.get("videoId") or "").strip()
+    kind = str(cast.get("streamingVideoType") or "").lower()
+    if not vid or not re.fullmatch(r"[A-Za-z0-9_\-]+(?:[&?#].*)?", vid):
+        return None
+    base = re.split(r"[&?#]", vid, maxsplit=1)[0]
+    if "youtube" in kind:
+        return {
+            "type": "youtube",
+            "url": f"https://www.youtube.com/watch?v={base}",
+            "embed": f"https://www.youtube-nocookie.com/embed/{base}",
+        }
+    if kind == "x-live-studio":
+        return {"type": "x", "url": f"https://x.com/i/broadcasts/{base}"}
+    if kind in ("x.com", "x", "twitter"):
+        return {"type": "x", "url": f"https://x.com/SpaceX/status/{base}"}
+    return None
