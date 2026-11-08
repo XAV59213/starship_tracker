@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.17.0";
+const CARD_VERSION = "1.17.1";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -458,7 +458,7 @@ class StarshipTrackerCard extends HTMLElement {
       </div></div>`;
     const carousels = [];
     if (C.show_carousel && C.show_carousel_spacex !== false && allM.length)
-      carousels.push(carBlock("spacex", "🚀 SpaceX Starship", allM.slice(0, C.carousel_count).map(spacexTile).join("")));
+      carousels.push(carBlock("spacex", "🚀 SpaceX Starship", allM.map(spacexTile).join("")));
     if (C.show_carousel && C.show_youtube) youtubeChannels.forEach(([language, key, , name]) => {
       if (C["show_carousel_" + key] === false || !(youtubeLanguage === "both" || language === youtubeLanguage)) return;
       const st = this._state(key);

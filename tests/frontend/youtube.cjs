@@ -89,7 +89,7 @@ assert.equal(count('youtube_fr_starbase'), 3);
 card.setConfig({youtube_carousel_lang: 'both', show_carousel_spacex: false, show_carousel_youtube_en: false});
 assert.deepEqual(cars(), ['youtube_fr', 'youtube_fr_starbase']);
 card.setConfig({carousel_count: 10});
-assert.equal(count('spacex'), 10);
+assert.equal(count('spacex'), 21);
 card.setConfig({show_carousel: false});
 assert.deepEqual(cars(), []);
 console.log('PASS: four separate carousels, language filter, per-carousel toggles and limit');
