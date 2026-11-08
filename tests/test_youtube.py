@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import xml.etree.ElementTree as ET
 from unittest.mock import AsyncMock, patch
 
@@ -26,6 +27,7 @@ CHANNEL = "UC" + "a" * 22
 OTHER_CHANNEL = "UC" + "b" * 22
 URL = "https://www.youtube.com/feeds/videos.xml"
 FETCH = "custom_components.starship_tracker.youtube_coordinator.async_fetch_feed"
+TABS = "custom_components.starship_tracker.youtube_coordinator.async_fetch_channel_videos"
 
 
 def feed(entries):
@@ -254,6 +256,19 @@ async def test_persist_before_alert_and_keep_latest_when_feed_rolls_over(hass):
     assert not events
     with patch(FETCH, AsyncMock(return_value=[])):
         assert (await c._async_update_data())["video_id"] == OLD[0]
+
+
+async def test_channel_tab_failure_keeps_rss_result(hass, caplog):
+    c = coordinator(hass)
+    with (
+        patch(FETCH, AsyncMock(return_value=parse_feed(feed([OLD])))),
+        patch(TABS, AsyncMock(side_effect=AttributeError("getaddrinfo"))),
+        caplog.at_level(logging.DEBUG),
+    ):
+        data = await c._async_update_data()
+    assert data["video_id"] == OLD[0]
+    assert [video["video_id"] for video in data["videos"]] == [OLD[0]]
+    assert any("YouTube tabs" in record.message for record in caplog.records)
 
 
 @pytest.mark.parametrize(
