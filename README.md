@@ -66,7 +66,7 @@ Version actuelle : **1.24.0**. Nécessite Home Assistant **2024.11.0** ou plus r
 
 ### Qualité / Quality scale
 
-Niveau **Gold** de l'[Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) : voir [`quality_scale.yaml`](custom_components/starship_tracker/quality_scale.yaml). Tests : `pytest` (pytest-homeassistant-custom-component), couverture ~96 %.
+Niveau **Platinum** de l'[Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) : voir [`quality_scale.yaml`](custom_components/starship_tracker/quality_scale.yaml). Tests : `pytest` (pytest-homeassistant-custom-component), couverture ~96 %.
 
 ### Dépannage / Troubleshooting
 
