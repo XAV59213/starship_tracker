@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.17.1";
+const CARD_VERSION = "1.17.2";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -457,8 +457,7 @@ class StarshipTrackerCard extends HTMLElement {
         <div class="car-count" role="status" aria-live="polite"></div>
       </div></div>`;
     const carousels = [];
-    if (C.show_carousel && C.show_carousel_spacex !== false && allM.length)
-      carousels.push(carBlock("spacex", "🚀 SpaceX Starship", allM.map(spacexTile).join("")));
+    const spacexCarHtml = C.show_carousel && C.show_carousel_spacex !== false && allM.length ? (carBlock("spacex", "🚀 SpaceX Starship", allM.map(spacexTile).join(""))) : "";
     if (C.show_carousel && C.show_youtube) youtubeChannels.forEach(([language, key, , name]) => {
       if (C["show_carousel_" + key] === false || !(youtubeLanguage === "both" || language === youtubeLanguage)) return;
       const st = this._state(key);
@@ -547,9 +546,10 @@ class StarshipTrackerCard extends HTMLElement {
         ${hasMission && C.show_countdown ? row(L.countdown, `<span class="cd">${esc(this._countdown(launchMs))}</span>`) : ""}
         ${C.show_details ? row(L.tags, hasMission ? (tags || "—") + " |" : esc(L.none)) : ""}
         ${hasMission && C.show_details ? `<div class="row"><a href="${esc(url)}" target="_blank" rel="noopener">${L.details} →</a>${C.show_videos ? ` · <a href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</div>` : ""}
-        ${carouselHtml}
+        ${spacexCarHtml}
         ${showBtn ? `<button class="dbtn" type="button">${this._open ? L.hide : "ℹ️ " + L.details}</button>` : ""}
         ${panel}
+        ${carouselHtml}
         ${C.show_live ? `<div class="live ${isLive ? "on" : ""}">
           ${isLive ? `🔴 ${L.live} — <a href="${esc(url)}" target="_blank" rel="noopener">${L.watch}</a>`
                    : `⚪ ${L.nolive} — <a href="https://www.spacex.com/vehicles/starship" target="_blank" rel="noopener">spacex.com</a>`}
