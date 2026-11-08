@@ -352,7 +352,7 @@ def _remember(videos: dict[str, dict[str, str]], order: list[str], video: dict[s
         videos[video["video_id"]] = video
         order.append(video["video_id"])
         return
-    for key in ("live_status", "scheduled"):
+    for key in ("live_status", "scheduled", "scheduled_approx"):
         if video.get(key) and not current.get(key):
             current[key] = video[key]
 
@@ -405,7 +405,7 @@ def merge_videos(*lists: list[dict[str, str]], limit: int = 50) -> list[dict[str
             if current is None:
                 merged[video["video_id"]] = dict(video)
                 continue
-            for key in ("live_status", "scheduled"):
+            for key in ("live_status", "scheduled", "scheduled_approx"):
                 if video.get(key) and not current.get(key):
                     current[key] = video[key]
     return sorted(merged.values(), key=lambda v: datetime.fromisoformat(v["published"]), reverse=True)[:limit]
