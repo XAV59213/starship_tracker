@@ -361,9 +361,14 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
             latest = {**videos[0], "channel": self.channel}
         if latest:
             # Last 15 Starship videos for the card carousel: RSS plus public channel tabs.
-            extra = await async_fetch_channel_videos(
-                async_get_clientsession(self.hass), self.channel, self.keyword
-            )
+            # Tabs are best effort: any failure must leave the RSS sensor available.
+            try:
+                extra = await async_fetch_channel_videos(
+                    async_get_clientsession(self.hass), self.channel, self.keyword
+                )
+            except Exception as err:  # noqa: BLE001 - best effort, never blocks the RSS sensor
+                _LOGGER.debug("YouTube tabs %s: %s", self.channel, err)
+                extra = []
             latest = {**latest, "videos": merge_videos(videos, extra)}
         seen = list(
             dict.fromkeys([*self._seen, *(video["video_id"] for video in new)])
