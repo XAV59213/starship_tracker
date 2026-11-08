@@ -18,6 +18,10 @@ jobs:
           python-version: "3.14"
       - name: Install
         run: pip install -r requirements_test.txt
+      - name: Mypy strict
+        run: |
+          pip install mypy
+          mypy custom_components/starship_tracker
       - name: Pytest
         run: pytest -q --cov=custom_components.starship_tracker --cov-report=term-missing
       - name: Card JavaScript

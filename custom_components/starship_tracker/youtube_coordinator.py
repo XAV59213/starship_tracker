@@ -154,7 +154,7 @@ async def async_resolve_channel(session: aiohttp.ClientSession, value: str) -> s
             return parse_channel_id(await _read_text(response, 4 * MAX_RESPONSE))
 
 
-def parse_feed(xml: str, keyword: str = "starship") -> list[dict[str, str]]:
+def parse_feed(xml: str, keyword: str = "starship") -> list[dict[str, Any]]:
     """Read bounded Atom XML, rejecting DTD/entity declarations before parsing.
 
     ElementTree never fetches external entities. Rejecting declarations also
@@ -204,7 +204,7 @@ def parse_feed(xml: str, keyword: str = "starship") -> list[dict[str, str]]:
 
 async def async_fetch_feed(
     session: aiohttp.ClientSession, channel: str, keyword: str
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """Fetch the channel's recent public uploads (YouTube RSS has a limited history)."""
     async with asyncio.timeout(YOUTUBE_TIMEOUT):
         async with session.get(
@@ -219,10 +219,10 @@ async def async_fetch_feed(
 
 async def async_fetch_channel_videos(
     session: aiohttp.ClientSession, channel: str, keyword: str
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """Older matching videos/lives from public channel tabs (best effort)."""
     now = datetime.now(UTC)
-    found: list[dict[str, str]] = []
+    found: list[dict[str, Any]] = []
     for tab in ("videos", "streams"):
         try:
             async with asyncio.timeout(YOUTUBE_TIMEOUT):
@@ -242,7 +242,7 @@ async def async_fetch_channel_videos(
     return found
 
 
-class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
+class YouTubeCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
     """Independent coordinator per language: one broken channel cannot hide another."""
 
     def __init__(
@@ -275,10 +275,10 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
         self._loaded = False
         self._initialized = False
         self._seen: list[str] = []
-        self._latest: dict[str, str] | None = None
-        self._live_states: dict[str, str] = {}
+        self._latest: dict[str, Any] | None = None
+        self._live_states: dict[str, Any] = {}
 
-    async def _async_update_data(self) -> dict[str, str] | None:
+    async def _async_update_data(self) -> dict[str, Any] | None:
         if not self._loaded:
             saved = await self._store.async_load() or {}
             self._initialized = bool(saved.get("initialized", False))

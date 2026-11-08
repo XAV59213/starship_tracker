@@ -79,4 +79,4 @@ rules:
   # ---------- Platinum ----------
   async-dependency: done  # aiohttp uniquement
   inject-websession: done  # async_get_clientsession(hass)
-  strict-typing: todo  # pas encore de py.typed / mypy --strict
+  strict-typing: done  # mypy --strict en CI, py.typed
