@@ -8,6 +8,7 @@ import logging
 import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
+from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
 
@@ -18,7 +19,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN
+from .const import DOMAIN, YOUTUBE_KNOWN_HANDLES
 
 _LOGGER = logging.getLogger(__name__)
 CHANNEL_ID = re.compile(r"UC[\w-]{22}", re.ASCII)
@@ -30,16 +31,66 @@ NS = {
 }
 
 
+YOUTUBE_TIMEOUT = 15
+YOUTUBE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9,fr;q=0.8",
+}
+# Anonymous consent preferences, not account/authentication cookies. These are
+# supplied per request, never read from a user's browser or credential storage.
+YOUTUBE_CONSENT_COOKIES = {"CONSENT": "YES+1", "SOCS": "CAI"}
+
+
+class YouTubeConsentError(ValueError):
+    """The public page still redirects to an EU consent screen."""
+
+
+class _ChannelMetadataParser(HTMLParser):
+    """Read channel-owned head metadata, not IDs of recommended channels."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.canonical: list[str] = []
+        self.identifiers: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if (
+            tag == "link"
+            and "canonical" in (attributes.get("rel") or "").lower().split()
+        ):
+            url = urlparse(attributes.get("href") or "")
+            path = url.path.rstrip("/")
+            if (
+                url.scheme == "https"
+                and url.hostname in {"youtube.com", "www.youtube.com"}
+                and path.startswith("/channel/")
+                and CHANNEL_ID.fullmatch(path[9:])
+            ):
+                self.canonical.append(path[9:])
+        elif tag == "meta":
+            kind = (
+                attributes.get("itemprop") or attributes.get("name") or ""
+            ).casefold()
+            content = attributes.get("content") or ""
+            if kind in {"identifier", "channelid"} and CHANNEL_ID.fullmatch(content):
+                self.identifiers.append(content)
+
+
 def parse_channel_id(page: str) -> str:
-    """Extract channel metadata, never run JavaScript from a channel page."""
-    for pattern in (
-        r'"externalId"\s*:\s*"(UC[\w-]{22})"',
-        r"https://www\.youtube\.com/channel/(UC[\w-]{22})",
-        r'"channelId"\s*:\s*"(UC[\w-]{22})"',
-    ):
-        if match := re.search(pattern, page, re.ASCII):
-            return match.group(1)
-    raise ValueError("No YouTube channel ID found")
+    """Prefer canonical channel URLs, then externalId, then explicit meta IDs.
+
+    Generic JSON channelId occurs in recommended videos and is never trusted.
+    """
+    metadata = _ChannelMetadataParser()
+    metadata.feed(page)
+    if metadata.canonical:
+        return metadata.canonical[0]
+    if match := re.search(r'"externalId"\s*:\s*"(UC[\w-]{22})"', page, re.ASCII):
+        return match.group(1)
+    if metadata.identifiers:
+        return metadata.identifiers[0]
+    raise ValueError("No channel-owned YouTube metadata found; use a UC channel ID")
 
 
 async def _read_text(
@@ -79,10 +130,24 @@ async def async_resolve_channel(session: aiohttp.ClientSession, value: str) -> s
         return path[9:]
     if not re.fullmatch(r"/(?:@[\w.-]{1,100}|(?:c|user)/[\w.-]{1,100})", path):
         raise ValueError("Not a YouTube channel")
-    async with asyncio.timeout(20):
+    # The three suggested channels are pinned to verified public IDs. This is
+    # also our offline/consent fallback: no network is needed for these aliases.
+    if known_id := YOUTUBE_KNOWN_HANDLES.get(path[1:].casefold()):
+        return known_id
+    async with asyncio.timeout(YOUTUBE_TIMEOUT):
         async with session.get(
-            "https://www.youtube.com" + path, allow_redirects=False
+            "https://www.youtube.com" + path,
+            allow_redirects=False,
+            headers=YOUTUBE_HEADERS,
+            cookies=YOUTUBE_CONSENT_COOKIES,
         ) as response:
+            location = response.headers.get("Location", "")
+            if response.status in {301, 302, 303, 307, 308} and urlparse(
+                location
+            ).hostname in {"consent.youtube.com", "consent.google.com"}:
+                raise YouTubeConsentError(
+                    "YouTube consent required; enter the UC channel ID"
+                )
             if response.status != 200:
                 raise ValueError("YouTube channel page unavailable")
             return parse_channel_id(await _read_text(response, 4 * MAX_RESPONSE))
@@ -140,9 +205,12 @@ async def async_fetch_feed(
     session: aiohttp.ClientSession, channel: str, keyword: str
 ) -> list[dict[str, str]]:
     """Fetch the channel's recent public uploads (YouTube RSS has a limited history)."""
-    async with asyncio.timeout(20):
+    async with asyncio.timeout(YOUTUBE_TIMEOUT):
         async with session.get(
-            "https://www.youtube.com/feeds/videos.xml", params={"channel_id": channel}
+            "https://www.youtube.com/feeds/videos.xml",
+            params={"channel_id": channel},
+            headers=YOUTUBE_HEADERS,
+            cookies=YOUTUBE_CONSENT_COOKIES,
         ) as response:
             response.raise_for_status()
             return parse_feed(await _read_text(response), keyword)
