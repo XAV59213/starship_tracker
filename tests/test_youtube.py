@@ -292,7 +292,7 @@ def _lockup(video_id, title, texts, badges=None, start=None):
 def test_stream_tab_upcoming_live_and_ended():
     now = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
     page = _tab_page([
-        _lockup("eeeeeeeeeee", "Lancement sans mot cle", ["Scheduled for Nov 15, 2026, 8:00 PM"], [
+        _lockup("eeeeeeeeeee", "Starship lancement", ["Scheduled for Nov 15, 2026, 8:00 PM"], [
             {"text": "UPCOMING", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING"},
         ]),
         _lockup("fffffffffff", "Starship en cours", ["12K watching"], [
@@ -309,6 +309,7 @@ def test_stream_tab_upcoming_live_and_ended():
     assert set(videos) == {"eeeeeeeeeee", "fffffffffff", "ggggggggggg"}
     assert videos["eeeeeeeeeee"]["live_status"] == "upcoming"
     assert videos["eeeeeeeeeee"]["scheduled"].startswith("2026-11-15T20:00:00")
+    assert videos["eeeeeeeeeee"]["scheduled_approx"] is True
     assert videos["fffffffffff"]["live_status"] == "live"
     assert "live_status" in videos["fffffffffff"]
     assert videos["ggggggggggg"]["live_status"] == "ended"
@@ -450,3 +451,13 @@ async def test_rss_request_has_consent_preferences(hass, aioclient_mock):
         assert await async_fetch_feed(session, CHANNEL, "")
     assert request.call_args.kwargs["headers"] == YOUTUBE_HEADERS
     assert request.call_args.kwargs["cookies"] == YOUTUBE_CONSENT_COOKIES
+
+
+def test_stream_tab_live_without_keyword_is_dropped():
+    now = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
+    page = _tab_page([
+        _lockup("jjjjjjjjjjj", "Falcon 9 live", ["5K watching"], [
+            {"text": "LIVE", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE"},
+        ]),
+    ])
+    assert parse_channel_tab(page, "starship", now, streams=True) == []

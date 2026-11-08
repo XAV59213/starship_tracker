@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.20.0";
+const CARD_VERSION = "1.21.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -81,7 +81,7 @@ const trEntry = (d) => TIMELINE_FR[String(d || "").trim().toLowerCase().replace(
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_youtube: true, youtube_carousel_lang: "auto", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
+  show_youtube: true, youtube_carousel_lang: "auto", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, youtube_live_badges_en: false, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
 };
 
 const LABELS = {
@@ -96,6 +96,7 @@ const LABELS = {
   show_upcoming: "Prochaines missions / Upcoming",
   show_last: "Derniers vols / Latest flights",
   show_youtube: "Vidéos YouTube FR/EN / YouTube videos FR/EN",
+  youtube_live_badges_en: "Badges live NASASpaceflight / NASASpaceflight live badges",
   youtube_carousel_lang: "Langue YouTube du carrousel / Carousel YouTube language",
   youtube_fr: "YouTube français / French YouTube",
   youtube_en: "YouTube anglais / English YouTube",
@@ -136,7 +137,7 @@ class StarshipTrackerCard extends HTMLElement {
         { type: "expandable", name: "", title: "Compteurs SpaceX / SpaceX counters", flatten: true, schema: [b("show_stats")] },
         { type: "expandable", name: "", title: "Carrousel / Carousel", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [b("show_carousel"), num("carousel_count", 50)] },
-          { type: "grid", name: "", flatten: true, schema: [b("show_carousel_spacex"), b("show_carousel_youtube_fr"), b("show_carousel_youtube_fr_starbase"), b("show_carousel_youtube_en")] },
+          { type: "grid", name: "", flatten: true, schema: [b("show_carousel_spacex"), b("show_carousel_youtube_fr"), b("show_carousel_youtube_fr_starbase"), b("show_carousel_youtube_en"), b("youtube_live_badges_en")] },
           { name: "youtube_carousel_lang", selector: { select: { options: [
             { value: "auto", label: "Auto (langue HA / HA language)" },
             { value: "fr", label: "Français / French" },
@@ -445,7 +446,7 @@ class StarshipTrackerCard extends HTMLElement {
       if (!Number.isFinite(parsed)) return "—";
       const date = new Date(parsed);
       return upcoming
-        ? date.toLocaleString(lang, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        ? (m.scheduled_approx ? "≈ " : "") + date.toLocaleString(lang, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
         : date.toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" });
     };
     // Badges de direct seulement pour UFOTINIK et StarBase FR. NASASpaceflight garde la langue.
@@ -481,11 +482,11 @@ class StarshipTrackerCard extends HTMLElement {
       if (C["show_carousel_" + key] === false || !(youtubeLanguage === "both" || language === youtubeLanguage)) return;
       const st = this._state(key);
       if (!st || ["unknown", "unavailable"].includes(st.state)) return;
-      const withLive = key === "youtube_fr" || key === "youtube_fr_starbase";
+      const withLive = key === "youtube_fr" || key === "youtube_fr_starbase" || (key === "youtube_en" && C.youtube_live_badges_en === true);
       const list = Array.isArray(st.attributes?.videos) && st.attributes.videos.length ? st.attributes.videos : [st.attributes || {}];
       const vids = list.filter((v) => v && typeof v === "object").map((v) => ({
         language, url: safeUrl(v.url), title: v.title || st.state, thumbnail: safeUrl(v.thumbnail),
-        published: v.published, scheduled: v.scheduled, live_status: v.live_status,
+        published: v.published, scheduled: v.scheduled, scheduled_approx: v.scheduled_approx === true, live_status: v.live_status,
       })).filter((v) => v.url).slice(0, C.carousel_count);
       if (vids.length) carousels.push(carBlock(key, `📺 ${name} (${language.toUpperCase()})`, vids.map((v) => ytTile(v, withLive)).join("")));
     });

@@ -1,0 +1,10 @@
+# Live Starship YouTube à venir / en cours (1.21.0+). FR: remplacer le service notify.
+alias: "Starship - live YouTube"
+triggers:
+  - trigger: event
+    event_type: starship_tracker_youtube_live
+actions:
+  - action: notify.mobile_app_mon_telephone
+    data:
+      title: "🔴 Starship {{ trigger.event.data.status }}"
+      message: "{{ trigger.event.data.title }} {{ trigger.event.data.url }}"
