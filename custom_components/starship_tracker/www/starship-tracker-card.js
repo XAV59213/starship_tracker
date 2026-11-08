@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.14.0";
+const CARD_VERSION = "1.15.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -56,6 +56,24 @@ const parseMission = (p) => {
     mission_timeline: timeline(p.postLaunchTimeline),
   };
 };
+
+// Traduction FR déterministe (miroir de translate.py : titres, statuts, chronologie).
+const TIMELINE_FR = {"spacex flight director conducts poll and verifies go for propellant load": "Le directeur de vol SpaceX fait le tour des équipes et confirme le GO pour le remplissage des ergols", "max q (moment of peak aerodynamic stress on the rocket)": "Max Q (moment de contrainte aérodynamique maximale sur la fusée)", "super heavy meco (most engines cut off)": "MECO du Super Heavy (arrêt de la plupart des moteurs)", "hot-staging (starship raptor ignition and stage separation)": "Hot-staging (allumage des Raptor de Starship et séparation des étages)", "super heavy boostback burn startup": "Début de l'allumage de retour (boostback) du Super Heavy", "super heavy boostback burn shutdown": "Fin de l'allumage de retour (boostback) du Super Heavy", "super heavy is expected to be over the gulf of america": "Super Heavy devrait être au-dessus du golfe du Mexique", "super heavy landing burn startup": "Début de l'allumage d'atterrissage du Super Heavy", "super heavy landing burn shutdown": "Fin de l'allumage d'atterrissage du Super Heavy", "super heavy landing burn startup and catch": "Allumage d'atterrissage et capture du Super Heavy", "super heavy catch": "Capture du Super Heavy", "booster lox (liquid oxygen) load underway": "Remplissage du LOX (oxygène liquide) du booster en cours", "booster fuel (liquid methane) load underway": "Remplissage du carburant (méthane liquide) du booster en cours", "starship fuel (liquid methane) load underway": "Remplissage du carburant (méthane liquide) de Starship en cours", "starship lox (liquid oxygen) load underway": "Remplissage du LOX (oxygène liquide) de Starship en cours", "raptor begins engine chill on booster": "Début de la mise en froid des moteurs Raptor du booster", "raptor begins engine chill on starship": "Début de la mise en froid des moteurs Raptor de Starship", "starship engine chill": "Mise en froid des moteurs de Starship", "booster engine chill": "Mise en froid des moteurs du booster", "spacex flight director verifies go for launch": "Le directeur de vol SpaceX confirme le GO pour le lancement", "excess propellant offload": "Délestage des ergols en excès", "flight computers command booster and ship propellant pressurization": "Les ordinateurs de vol commandent la pressurisation des ergols du booster et du vaisseau", "booster and ship propellant pressurization": "Pressurisation des ergols du booster et du vaisseau", "propellant load complete": "Remplissage des ergols terminé", "propellant load": "Remplissage des ergols", "starship secos (second engine cutoff)": "SECO de Starship (arrêt des moteurs du second étage)", "starship seco (second engine cutoff)": "SECO de Starship (arrêt des moteurs du second étage)", "starship seco": "SECO de Starship", "starship meco": "MECO de Starship", "starship entry": "Rentrée atmosphérique de Starship", "starship atmospheric entry": "Rentrée atmosphérique de Starship", "starship flip, landing burn, and landing": "Basculement, allumage d'atterrissage et atterrissage de Starship", "starship flip, landing burn, and catch": "Basculement, allumage d'atterrissage et capture de Starship", "starship landing flip": "Basculement d'atterrissage de Starship", "starship landing burn": "Allumage d'atterrissage de Starship", "starship splashdown": "Amerrissage de Starship", "starship catch": "Capture de Starship", "raptor in-space relight": "Rallumage d'un Raptor dans l'espace", "in-space raptor relight": "Rallumage d'un Raptor dans l'espace", "starlink simulator deployment begins": "Début du déploiement des simulateurs Starlink", "starlink simulator deployment complete": "Fin du déploiement des simulateurs Starlink", "payload deploy": "Déploiement de la charge utile", "hot-staging": "Hot-staging (séparation à chaud)", "stage separation": "Séparation des étages", "liftoff": "Décollage", "lift off": "Décollage", "max q": "Max Q (pression dynamique maximale)", "landing": "Atterrissage", "splashdown": "Amerrissage", "catch": "Capture"};
+const ORD = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh",
+  "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth"];
+const STATUS_FR = { final: "Terminé", upcoming: "À venir", live: "En direct", active: "En cours", past: "Terminé" };
+const trTitle = (t) => {
+  const s = String(t || "").trim();
+  let m = s.match(/^Starship'?s?\s+(\w+)\s+Flight\s+Test$/i);
+  if (m && ORD.includes(m[1].toLowerCase())) { const n = ORD.indexOf(m[1].toLowerCase()) + 1; return `${n === 1 ? "1er" : n + "e"} vol d'essai Starship`; }
+  if ((m = s.match(/^Starship\s+Flight\s+(\d+)$/i))) return `Vol Starship ${m[1]}`;
+  if (/^Starship\s+Flight\s+Test$/i.test(s)) return "Vol d'essai Starship";
+  if ((m = s.match(/^Starship\s+High\s+Altitude\s+Test\s*-\s*(\S+)$/i))) return `Test haute altitude Starship - ${m[1]}`;
+  if ((m = s.match(/^Starship\s+Test\s*-\s*(\S+)$/i))) return `Test Starship - ${m[1]}`;
+  return t;
+};
+const trStatus = (v) => (v && STATUS_FR[String(v).toLowerCase()]) || v;
+const trEntry = (d) => TIMELINE_FR[String(d || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/\.$/, "")] || d;
 
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
@@ -249,6 +267,9 @@ class StarshipTrackerCard extends HTMLElement {
           s1: "Completed missions", s2: "Total landings", s3: "Total reflights" };
 
     const C = this._config;
+    const fr = lang === "fr" && !this._orig;
+    const T = (t) => (fr ? trTitle(t) : t);
+    const S = (v) => (fr ? trStatus(v) : v);
     const next = this._state("next");
     const a = next?.attributes || {};
     const hasMission = next && !["unknown", "unavailable", ""].includes(next.state);
@@ -268,7 +289,7 @@ class StarshipTrackerCard extends HTMLElement {
     const sourceNames = { feed: L.sourceFeed, mission_page: L.sourcePage };
     const sourceLabel = sourceNames[a.date_source] || "";
     const tags = [a.mission_type, status?.state && !["unknown", "unavailable"].includes(status.state) ? status.state : a.mission_status]
-      .filter(Boolean).map(esc).join(" | ");
+      .filter(Boolean).map((v) => esc(S(v))).join(" | ");
     const row = (k, v) => `<div class="row"><span class="k">${esc(k)}:</span> ${v}</div>`;
 
     const news = (this._state("news")?.attributes?.news || []).slice(0, C.news_count);
@@ -286,7 +307,7 @@ class StarshipTrackerCard extends HTMLElement {
       ? list.slice(0, n).map((m) => {
           const v = safeUrl(m.video_url) || safeUrl(m.url);
           const d = m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "TBD";
-          return `<li>${m.is_live ? "🔴 " : ""}<b>${esc(m.mission)}</b> — ${esc(d)}${m.launch_site ? ` · ${esc(m.launch_site)}` : ""}${v && C.show_videos ? ` · <a href="${esc(v)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</li>`;
+          return `<li>${m.is_live ? "🔴 " : ""}<b>${esc(T(m.mission))}</b> — ${esc(d)}${m.launch_site ? ` · ${esc(m.launch_site)}` : ""}${v && C.show_videos ? ` · <a href="${esc(v)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</li>`;
         }).join("")
       : `<li class="muted">${L.nomission}</li>`;
     const missionsHtml = C.show_missions && this._state("missions")
@@ -304,10 +325,11 @@ class StarshipTrackerCard extends HTMLElement {
             .map(([k, l]) => `<div class="stat"><div class="sv">${esc(statVal(k))}</div><div class="sl">${esc(l)}</div></div>`).join("")}
         </a>` : "";
 
-    const statusText = status?.state && !["unknown", "unavailable"].includes(status.state) ? status.state : (a.mission_status || "—");
+    const statusText0 = status?.state && !["unknown", "unavailable"].includes(status.state) ? status.state : (a.mission_status || "—");
+    const statusText = fr ? (a.mission_status_fr || trStatus(statusText0)) : statusText0;
     const murl = safeUrl(a.mission_url) || url;
     const img = safeUrl(a.mission_image);
-    const desc = String(a.mission_description || "").split(/\n{2,}/).filter((p) => p.trim())
+    const desc = String((fr && a.mission_description_fr) || a.mission_description || "").split(/\n{2,}/).filter((p) => p.trim())
       .map((p) => `<p>${esc(p)}</p>`).join("") || `<p class="muted0">${L.nodesc}</p>`;
     const casts = [...(a.webcast_links || []), ...(a.mission_links || []), vurl].map(safeUrl).filter(Boolean)
       .filter((u, i, arr) => arr.indexOf(u) === i).slice(0, 8);
@@ -346,7 +368,8 @@ class StarshipTrackerCard extends HTMLElement {
       const loading = !isNext && m.link && !this._details[m.link];
       const pimg = safeUrl(D.mission_image) || safeUrl(m.image);
       const wm = Number(m.launch_window_minutes);
-      const st = isNext ? statusText : (m.mission_status || "—");
+      const st = isNext ? statusText : (S(m.mission_status) || "—");
+      const tlFr = (list, frList) => (fr ? ((frList && frList.length ? frList : (list || []).map(([t, d]) => [t, trEntry(d)]))) : list);
       const dtext = isNext ? desc : String(D.mission_description || "").split(/\n{2,}/).filter((p) => p.trim()).map((p) => `<p>${esc(p)}</p>`).join("");
       const plinks = [...(isNext ? casts : []), ...(D.webcast_links || []), m.video_url, m.url].map(safeUrl).filter(Boolean)
         .filter((u, i, arr) => arr.indexOf(u) === i).slice(0, 8);
@@ -355,7 +378,7 @@ class StarshipTrackerCard extends HTMLElement {
       const infoM = safeUrl(D.mission_infographic_mobile);
       return `<div class="panel">
         ${pimg ? `<img class="mimg" src="${esc(pimg)}" alt="${esc(m.mission)}" decoding="async" width="1000" height="563">` : ""}
-        <div class="ptitle">${esc(m.mission)}</div>
+        <div class="ptitle">${esc(T(m.mission))}${lang === "fr" ? ` <button class="orig" type="button">${this._orig ? "Texte traduit" : "Texte original"}</button>` : ""}</div>
         ${row(L.date, esc(isNext ? fullDate : fmtDate(m)))}
         ${Number.isInteger(wm) && wm > 0 ? row(L.window, esc(wm + " min")) : ""}
         ${row(L.pad, esc(m.launch_site || "Starbase"))}
@@ -364,8 +387,8 @@ class StarshipTrackerCard extends HTMLElement {
         ${loading ? `<div class="muted0">${esc(L.loading)}</div>` : ""}
         ${dtext ? `<div class="desc">${dtext}</div>` : (isNext ? "" : "")}
         ${info ? `<div class="sech">${esc(L.plan)}</div><a href="${esc(info)}" target="_blank" rel="noopener"><picture>${infoM ? `<source media="(max-width: 600px)" srcset="${esc(infoM)}">` : ""}<img class="info" src="${esc(info)}" alt="${esc(L.plan)}" decoding="async" width="1000" height="522"></picture></a>` : ""}
-        ${tl("cd", L.cdTitle, D.mission_countdown)}
-        ${tl("tl", L.tlTitle, D.mission_timeline)}
+        ${tl("cd", L.cdTitle, tlFr(D.mission_countdown, isNext && D.mission_countdown_fr))}
+        ${tl("tl", L.tlTitle, tlFr(D.mission_timeline, isNext && D.mission_timeline_fr))}
         ${C.show_videos && plinks.length ? `<div class="row"><span class="k">${L.links}:</span> ${plinks.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</div>` : ""}
         <div class="row"><a href="${esc(page)}" target="_blank" rel="noopener">${L.page} →</a></div>
       </div>`;
@@ -382,7 +405,7 @@ class StarshipTrackerCard extends HTMLElement {
           const d = m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "TBD";
           return `<div class="tile ${cls}" data-key="${esc(m.link || m.mission)}" role="button" tabindex="0">
             <div class="timg">${im ? `<img src="${esc(im)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge ${cls}">${esc(lbl)}</span></div>
-            <div class="tt">${esc(m.mission)}</div>
+            <div class="tt">${esc(T(m.mission))}</div>
             <div class="ts">${esc(d)}${m.launch_site ? " · " + esc(m.launch_site) : ""}</div>
             <div class="bar ${cls}"></div>
           </div>`;
@@ -413,6 +436,7 @@ class StarshipTrackerCard extends HTMLElement {
         .dbtn { margin-top: 8px; padding: 6px 14px; border: none; border-radius: 16px; cursor: pointer; background: var(--primary-color); color: var(--text-primary-color, #fff); font-weight: 600; }
         .panel { margin-top: 10px; padding: 10px; border-radius: 8px; background: var(--secondary-background-color); }
         .mimg { width: 100%; aspect-ratio: 16 / 9; height: auto; object-fit: cover; border-radius: 6px; display: block; margin-bottom: 8px; background: #111; }
+        .orig { margin-left: 8px; font-size: .7em; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--divider-color, #888); background: transparent; color: var(--secondary-text-color); cursor: pointer; vertical-align: middle; }
         .ptitle { font-weight: 700; font-size: 1.1em; margin-bottom: 4px; }
         .desc p { margin: 6px 0; line-height: 1.4; }
         .muted0 { color: var(--secondary-text-color); }
@@ -447,7 +471,7 @@ class StarshipTrackerCard extends HTMLElement {
         .sl { font-size: 0.8em; color: var(--secondary-text-color); text-transform: uppercase; }
       </style>
       <ha-card>
-        <div class="title">${C.title ? esc(C.title) : `${hasMission ? esc(next.state) : "TBD"} (SpaceX)`}</div>
+        <div class="title">${C.title ? esc(C.title) : `${hasMission ? esc(T(next.state)) : "TBD"} (SpaceX)`}</div>
         ${C.show_details ? `
         ${row(L.provider, "SpaceX")}
         ${row(L.vehicle, esc(a.vehicle || "Starship"))}
@@ -470,6 +494,8 @@ class StarshipTrackerCard extends HTMLElement {
         ${missionsHtml}
         ${C.show_news ? `<h3>${L.news}</h3><ul>${newsHtml}</ul>` : ""}
       </ha-card>`;
+    const ob = this.shadowRoot.querySelector(".orig");
+    if (ob) ob.addEventListener("click", (ev) => { ev.stopPropagation(); this._orig = !this._orig; this._render(); });
     const btn = this.shadowRoot.querySelector(".dbtn");
     if (btn) btn.addEventListener("click", (ev) => {
       ev.stopPropagation();

@@ -104,10 +104,12 @@
         "title": "Starship Tracker",
         "description": "Enter a new NewsAPI key (available at {register_url}). The integration reloads after saving.",
         "data": {
-          "api_key": "NewsAPI key"
+          "api_key": "NewsAPI key",
+          "translate_fr": "Translate SpaceX content to French"
         },
         "data_description": {
-          "api_key": "Free key from newsapi.org, used only for the Starship news sensor."
+          "api_key": "Free key from newsapi.org, used only for the Starship news sensor.",
+          "translate_fr": "Mission titles, status, description and timeline in French (free keyless translation, cached; original text kept on failure)."
         }
       }
     },

@@ -104,10 +104,12 @@
         "title": "Starship Tracker",
         "description": "Saisissez une nouvelle clé NewsAPI (disponible sur {register_url}). L'intégration est rechargée après l'enregistrement.",
         "data": {
-          "api_key": "Clé NewsAPI"
+          "api_key": "Clé NewsAPI",
+          "translate_fr": "Traduire le contenu SpaceX en français"
         },
         "data_description": {
-          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship."
+          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship.",
+          "translate_fr": "Titres, statut, description et chronologie en français (traduction gratuite sans clé, mise en cache ; texte original conservé en cas d'échec)."
         }
       }
     },

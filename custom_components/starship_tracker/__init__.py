@@ -11,7 +11,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 
-from .const import DOMAIN
+from .const import CONF_TRANSLATE, DOMAIN
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator
 from .stats_coordinator import SpaceXStatsCoordinator
@@ -49,7 +49,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> 
     """Crée les coordinators, premier refresh, puis charge les plateformes."""
     await _async_register_card(hass)
     news = StarshipNewsCoordinator(hass, entry)
-    live = StarshipLiveCoordinator(hass)
+    translate = entry.options.get(CONF_TRANSLATE, (hass.config.language or "").startswith("fr"))
+    live = StarshipLiveCoordinator(hass, translate=bool(translate))
     await live.async_config_entry_first_refresh()
     # NewsAPI optionnel au démarrage : en cas d'échec (clé, quota, réseau) le live
     # continue et le sensor actualités reste indisponible jusqu'au prochain essai.

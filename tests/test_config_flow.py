@@ -91,6 +91,9 @@ async def test_options_flow(hass: HomeAssistant, mock_setup) -> None:
         result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_API_KEY: "bad"})
     assert result["errors"] == {"base": "invalid_auth"}
     with patch(FETCH, AsyncMock(return_value=[])):
-        result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_API_KEY: "new"})
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {CONF_API_KEY: "new", "translate_fr": False}
+        )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.data[CONF_API_KEY] == "new"
+    assert entry.options == {"translate_fr": False}

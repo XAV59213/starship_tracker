@@ -55,7 +55,8 @@ def _mock(aioclient_mock, upcoming, news_status=200):
 @pytest.fixture
 async def entry(hass: HomeAssistant, aioclient_mock):
     _mock(aioclient_mock, [_tile()])
-    e = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_API_KEY: "k"})
+    aioclient_mock.get("https://translate.googleapis.com/translate_a/single", json=[[["Lancement dès vendredi.", "x"]]])
+    e = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_API_KEY: "k"}, options={"translate_fr": True})
     e.add_to_hass(hass)
     with patch("custom_components.starship_tracker._async_register_card", AsyncMock()):
         assert await hass.config_entries.async_setup(e.entry_id)
@@ -68,6 +69,8 @@ async def test_full_http_path(hass: HomeAssistant, entry, aioclient_mock) -> Non
     nxt = next(s for s in states.values() if s.attributes.get("link") == "starship-flight-15")
     assert nxt.attributes["date_source"] == "mission_page"
     assert nxt.attributes["launch_time"] == "22:45:00+00:00"
+    assert nxt.attributes["mission_fr"] == "Vol Starship 15"
+    assert nxt.attributes["mission_description_fr"] == "Lancement dès vendredi."
     assert nxt.attributes["mission_videos"][0]["url"] == "https://x.com/i/broadcasts/abc"
     assert any(s.state == "715" for s in states.values())
     diag = await async_get_config_entry_diagnostics(hass, entry)

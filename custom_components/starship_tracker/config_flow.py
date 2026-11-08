@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResu
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_API_KEY, DOMAIN
+from .const import CONF_API_KEY, CONF_TRANSLATE, DOMAIN
 from .coordinator import InvalidApiKey, async_fetch_news
 
 DATA_SCHEMA = vol.Schema({vol.Required(CONF_API_KEY): str})
@@ -112,11 +112,20 @@ class StarshipTrackerOptionsFlow(OptionsFlow):
                     self.config_entry, data={**self.config_entry.data, CONF_API_KEY: api_key}
                 )
                 self.hass.config_entries.async_schedule_reload(self.config_entry.entry_id)
-                return self.async_create_entry(data={})
+                return self.async_create_entry(data={CONF_TRANSLATE: bool(user_input.get(CONF_TRANSLATE))})
 
+        translate = self.config_entry.options.get(
+            CONF_TRANSLATE, (self.hass.config.language or "").startswith("fr")
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_API_KEY, default=self.config_entry.data.get(CONF_API_KEY, "")): str,
+                vol.Optional(CONF_TRANSLATE, default=translate): bool,
+            }
+        )
         return self.async_show_form(
             step_id="init",
-            data_schema=DATA_SCHEMA,
+            data_schema=schema,
             errors=errors,
             description_placeholders={"register_url": "https://newsapi.org/register"},
         )
