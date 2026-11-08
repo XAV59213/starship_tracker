@@ -393,7 +393,7 @@ def parse_channel_tab(
     return [videos[video_id] for video_id in order]
 
 
-def merge_videos(*lists: list[dict[str, str]], limit: int = 15) -> list[dict[str, str]]:
+def merge_videos(*lists: list[dict[str, str]], limit: int = 50) -> list[dict[str, str]]:
     """Deduplicate by video id (RSS dates win) and sort newest first.
 
     A later copy can still add live_status or scheduled when the RSS entry has none.

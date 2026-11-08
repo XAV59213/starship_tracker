@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.21.0";
+const CARD_VERSION = "1.22.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -81,7 +81,7 @@ const trEntry = (d) => TIMELINE_FR[String(d || "").trim().toLowerCase().replace(
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_youtube: true, youtube_carousel_lang: "auto", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, youtube_live_badges_en: false, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
+  show_youtube: true, youtube_carousel_lang: "both", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, youtube_live_badges_en: false, youtube_count_youtube_fr: 0, youtube_count_youtube_fr_starbase: 0, youtube_count_youtube_en: 0, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
 };
 
 const LABELS = {
@@ -110,6 +110,9 @@ const LABELS = {
   show_carousel_youtube_fr_starbase: "Carrousel StarBase FR / StarBase FR carousel",
   show_carousel_youtube_en: "Carrousel NASASpaceflight (EN) / NASASpaceflight carousel",
   carousel_count: "Nb vignettes / Max tiles",
+  youtube_count_youtube_fr: "Nb vidéos UFOTINIK (0 = toutes) / UFOTINIK videos (0 = all)",
+  youtube_count_youtube_fr_starbase: "Nb vidéos StarBase FR (0 = toutes) / StarBase FR videos (0 = all)",
+  youtube_count_youtube_en: "Nb vidéos NASASpaceflight (0 = toutes) / NASASpaceflight videos (0 = all)",
   total_launches: "Missions terminées / Completed missions",
   total_landings: "Atterrissages / Landings", total_reflights: "Réutilisations / Reflights",
   next: "Prochaine mission", countdown: "Countdown", status: "Statut mission",
@@ -138,6 +141,7 @@ class StarshipTrackerCard extends HTMLElement {
         { type: "expandable", name: "", title: "Carrousel / Carousel", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [b("show_carousel"), num("carousel_count", 50)] },
           { type: "grid", name: "", flatten: true, schema: [b("show_carousel_spacex"), b("show_carousel_youtube_fr"), b("show_carousel_youtube_fr_starbase"), b("show_carousel_youtube_en"), b("youtube_live_badges_en")] },
+          { type: "grid", name: "", flatten: true, schema: ["youtube_count_youtube_fr", "youtube_count_youtube_fr_starbase", "youtube_count_youtube_en"].map((name) => ({ name, selector: { number: { min: 0, max: 50, mode: "box" } } })) },
           { name: "youtube_carousel_lang", selector: { select: { options: [
             { value: "auto", label: "Auto (langue HA / HA language)" },
             { value: "fr", label: "Français / French" },
@@ -166,9 +170,14 @@ class StarshipTrackerCard extends HTMLElement {
 
   setConfig(config) {
     this._config = { ...DEFAULTS, ...(config || {}) };
+    this._userCount = Boolean(config && config.carousel_count != null);
     if (!["auto", "fr", "en", "both"].includes(this._config.youtube_carousel_lang)) this._config.youtube_carousel_lang = "auto";
     this._config.news_count = Math.max(1, Number(this._config.news_count) || DEFAULTS.news_count);
     this._config.carousel_count = Math.max(1, Number(this._config.carousel_count) || DEFAULTS.carousel_count);
+    ["youtube_fr", "youtube_fr_starbase", "youtube_en"].forEach((key) => {
+      const name = "youtube_count_" + key;
+      this._config[name] = Math.max(0, Math.floor(Number(this._config[name]) || 0));
+    });
     this._config.missions_count = Math.max(1, Number(this._config.missions_count) || DEFAULTS.missions_count);
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._sig = null;
@@ -487,7 +496,11 @@ class StarshipTrackerCard extends HTMLElement {
       const vids = list.filter((v) => v && typeof v === "object").map((v) => ({
         language, url: safeUrl(v.url), title: v.title || st.state, thumbnail: safeUrl(v.thumbnail),
         published: v.published, scheduled: v.scheduled, scheduled_approx: v.scheduled_approx === true, live_status: v.live_status,
-      })).filter((v) => v.url).slice(0, C.carousel_count);
+      })).filter((v) => v.url);
+      // Per channel count (0 = all). Legacy carousel_count applies only when set explicitly.
+      const perChannel = C["youtube_count_" + key];
+      const max = perChannel > 0 ? perChannel : (this._userCount ? C.carousel_count : vids.length);
+      vids.splice(max);
       if (vids.length) carousels.push(carBlock(key, `📺 ${name} (${language.toUpperCase()})`, vids.map((v) => ytTile(v, withLive)).join("")));
     });
     const carouselHtml = carousels.join("");
