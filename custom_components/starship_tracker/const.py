@@ -41,10 +41,18 @@ CONF_YOUTUBE_FR: Final = "youtube_channel_fr"
 CONF_YOUTUBE_EN: Final = "youtube_channel_en"
 CONF_YOUTUBE_KEYWORD: Final = "youtube_keyword"
 
-DEFAULT_YOUTUBE_FR: Final = "@UFOTINIK"
-DEFAULT_YOUTUBE_EN: Final = "@NASASpaceflight"
+DEFAULT_YOUTUBE_FR: Final = "UCmzE9RqR_6_F6ib_yirMn2Q"
+DEFAULT_YOUTUBE_EN: Final = "UCSUu1lih2RifWkKtDOJdsBA"
 
 CONF_YOUTUBE_FR2: Final = "youtube_channel_fr2"
 CONF_YOUTUBE_STARBASE_FR: Final = "youtube_starbase_fr"
 CONF_YOUTUBE_STARBASE_FILTER: Final = "youtube_starbase_filter"
-DEFAULT_YOUTUBE_FR2: Final = "@StarBaseFR"
+DEFAULT_YOUTUBE_FR2: Final = "UCLg3UuuZ8_gn9Z3XyrzDKhg"
+
+# Stable public IDs: resolve suggested handles locally, including when EU consent
+# or network outages prevent loading YouTube's channel HTML.
+YOUTUBE_KNOWN_HANDLES: Final = {
+    "@ufotinik": DEFAULT_YOUTUBE_FR,
+    "@nasaspaceflight": DEFAULT_YOUTUBE_EN,
+    "@starbasefr": DEFAULT_YOUTUBE_FR2,
+}

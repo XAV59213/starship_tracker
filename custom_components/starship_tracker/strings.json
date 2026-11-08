@@ -15,11 +15,11 @@
         },
         "data_description": {
           "api_key": "Free key from newsapi.org, used only for the Starship news sensor.",
-          "youtube_channel_fr": "Channel URL, @handle or UC… ID; suggested: @UFOTINIK. Empty to disable.",
-          "youtube_channel_en": "Channel URL, @handle or UC… ID; suggested: @NASASpaceflight. Empty to disable.",
+          "youtube_channel_fr": "UC… ID prefilled for @UFOTINIK. Channel URL or @handle also accepted; empty to disable.",
+          "youtube_channel_en": "UC… ID prefilled for @NASASpaceflight. Channel URL or @handle also accepted; empty to disable.",
           "youtube_keyword": "Same title filter for primary FR and EN; defaults to starship, empty for all. StarBase FR has its own filter toggle.",
           "youtube_starbase_fr": "Optional, disabled by default. Project update videos are labelled FR.",
-          "youtube_channel_fr2": "Channel URL, @handle or UC… ID; suggested: @StarBaseFR. Resolved only when updates are enabled.",
+          "youtube_channel_fr2": "UC… ID prefilled for @StarBaseFR. Channel URL or @handle also accepted; empty to disable. Resolved only when project updates are enabled.",
           "youtube_starbase_filter": "Off by default: include every video from this channel, even without Starship in the title."
         }
       },
@@ -49,7 +49,9 @@
       "cannot_connect": "Failed to connect to NewsAPI",
       "unknown": "Unexpected error",
       "invalid_youtube_channel": "Invalid or unresolved YouTube channel. Try its UC… ID.",
-      "youtube_cannot_connect": "Cannot reach YouTube. Retry or use a UC… ID."
+      "youtube_cannot_connect": "Cannot resolve the channel through YouTube. Retry or enter its UC… ID, without a network check.",
+      "youtube_resolution_timeout": "Channel resolution exceeded 15 seconds. Enter its UC… ID: IDs are accepted without a network check.",
+      "youtube_consent": "YouTube requires regional consent. Enter the channel's UC… ID (the three suggested channels are recognised offline)."
     },
     "abort": {
       "already_configured": "Starship Tracker is already configured",
@@ -139,11 +141,11 @@
         "data_description": {
           "api_key": "Free key from newsapi.org, used only for the Starship news sensor.",
           "translate_fr": "Mission titles, status, description and timeline in French (free keyless translation, cached; original text kept on failure).",
-          "youtube_channel_fr": "Channel URL, @handle or UC… ID; suggested: @UFOTINIK. Empty to disable.",
-          "youtube_channel_en": "Channel URL, @handle or UC… ID; suggested: @NASASpaceflight. Empty to disable.",
+          "youtube_channel_fr": "UC… ID prefilled for @UFOTINIK. Channel URL or @handle also accepted; empty to disable.",
+          "youtube_channel_en": "UC… ID prefilled for @NASASpaceflight. Channel URL or @handle also accepted; empty to disable.",
           "youtube_keyword": "Same title filter for primary FR and EN; defaults to starship, empty for all. StarBase FR has its own filter toggle.",
           "youtube_starbase_fr": "Optional, disabled by default. Project update videos are labelled FR.",
-          "youtube_channel_fr2": "Channel URL, @handle or UC… ID; suggested: @StarBaseFR. Resolved only when updates are enabled.",
+          "youtube_channel_fr2": "UC… ID prefilled for @StarBaseFR. Channel URL or @handle also accepted; empty to disable. Resolved only when project updates are enabled.",
           "youtube_starbase_filter": "Off by default: include every video from this channel, even without Starship in the title."
         }
       }
@@ -153,7 +155,9 @@
       "cannot_connect": "Failed to connect to NewsAPI",
       "unknown": "Unexpected error",
       "invalid_youtube_channel": "Invalid or unresolved YouTube channel. Try its UC… ID.",
-      "youtube_cannot_connect": "Cannot reach YouTube. Retry or use a UC… ID."
+      "youtube_cannot_connect": "Cannot resolve the channel through YouTube. Retry or enter its UC… ID, without a network check.",
+      "youtube_resolution_timeout": "Channel resolution exceeded 15 seconds. Enter its UC… ID: IDs are accepted without a network check.",
+      "youtube_consent": "YouTube requires regional consent. Enter the channel's UC… ID (the three suggested channels are recognised offline)."
     }
   },
   "exceptions": {

@@ -13,7 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CONF_API_KEY, CONF_TRANSLATE, CONF_YOUTUBE_FR, CONF_YOUTUBE_EN, CONF_YOUTUBE_KEYWORD, DEFAULT_YOUTUBE_FR, DEFAULT_YOUTUBE_EN, CONF_YOUTUBE_FR2, CONF_YOUTUBE_STARBASE_FR, CONF_YOUTUBE_STARBASE_FILTER, DEFAULT_YOUTUBE_FR2, DOMAIN
 from .coordinator import InvalidApiKey, async_fetch_news
-from .youtube_coordinator import async_resolve_channel
+from .youtube_coordinator import YouTubeConsentError, async_resolve_channel
 
 KEY_SCHEMA = vol.Schema({vol.Required(CONF_API_KEY): str})
 DATA_SCHEMA = KEY_SCHEMA.extend({
@@ -40,7 +40,11 @@ async def _youtube_options(hass: HomeAssistant, user_input: dict[str, Any], erro
             continue
         try:
             result[key] = await async_resolve_channel(async_get_clientsession(hass), value)
-        except (aiohttp.ClientError, TimeoutError):
+        except TimeoutError:
+            errors[key] = "youtube_resolution_timeout"
+        except YouTubeConsentError:
+            errors[key] = "youtube_consent"
+        except aiohttp.ClientError:
             errors[key] = "youtube_cannot_connect"
         except (ValueError, UnicodeError):
             errors[key] = "invalid_youtube_channel"

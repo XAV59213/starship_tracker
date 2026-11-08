@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.starship_tracker.const import CONF_API_KEY, DOMAIN
+from custom_components.starship_tracker.const import CONF_API_KEY, DOMAIN, DEFAULT_YOUTUBE_FR, DEFAULT_YOUTUBE_EN, DEFAULT_YOUTUBE_FR2
+from custom_components.starship_tracker.youtube_coordinator import YouTubeConsentError
 from custom_components.starship_tracker.coordinator import InvalidApiKey
 
 FETCH = "custom_components.starship_tracker.config_flow.async_fetch_news"
@@ -99,7 +100,7 @@ async def test_options_flow(hass: HomeAssistant, mock_setup) -> None:
     assert entry.options == {"translate_fr": False, "youtube_starbase_fr": False, "youtube_starbase_filter": False}
 
 
-@pytest.mark.parametrize(("exc", "error"), [(ValueError, "invalid_youtube_channel"), (TimeoutError, "youtube_cannot_connect")])
+@pytest.mark.parametrize(("exc", "error"), [(ValueError, "invalid_youtube_channel"), (TimeoutError, "youtube_resolution_timeout"), (aiohttp.ClientError, "youtube_cannot_connect"), (YouTubeConsentError, "youtube_consent")])
 async def test_youtube_user_validation(hass, mock_setup, exc, error):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     with patch(FETCH, AsyncMock(return_value=[])), patch("custom_components.starship_tracker.config_flow.async_resolve_channel", AsyncMock(side_effect=exc)):
@@ -132,8 +133,8 @@ async def test_youtube_options_clear_and_keep_ids(hass, mock_setup):
 async def test_youtube_suggested_defaults(hass, mock_setup):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     suggestions = {key.schema: key.description.get("suggested_value") for key in result["data_schema"].schema if key.description}
-    assert suggestions["youtube_channel_fr"] == "@UFOTINIK"
-    assert suggestions["youtube_channel_en"] == "@NASASpaceflight"
+    assert suggestions["youtube_channel_fr"] == DEFAULT_YOUTUBE_FR
+    assert suggestions["youtube_channel_en"] == DEFAULT_YOUTUBE_EN
     assert suggestions["youtube_keyword"] == "starship"
 
 
@@ -142,7 +143,7 @@ async def test_starbase_optional_and_not_resolved_when_disabled(hass, mock_setup
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     suggestions = {key.schema: key.description.get("suggested_value") for key in result["data_schema"].schema if key.description}
-    assert suggestions["youtube_channel_fr2"] == "@StarBaseFR"
+    assert suggestions["youtube_channel_fr2"] == DEFAULT_YOUTUBE_FR2
     with patch(FETCH, AsyncMock(return_value=[])), patch("custom_components.starship_tracker.config_flow.async_resolve_channel", AsyncMock()) as resolve:
         result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_API_KEY: "k", "youtube_channel_fr2": "@StarBaseFR", "youtube_starbase_fr": False})
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -168,3 +169,21 @@ async def test_starbase_enable_validation_and_clear(hass, mock_setup):
     with patch(FETCH, AsyncMock(return_value=[])):
         result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_API_KEY: "k", "youtube_channel_fr2": "", "youtube_starbase_fr": True})
     assert entry.options["youtube_channel_fr2"] == ""
+
+
+async def test_channel_ids_save_without_rss_or_resolution_request(hass, mock_setup):
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_API_KEY: 'k'})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    with patch(FETCH, AsyncMock(return_value=[])), patch('custom_components.starship_tracker.youtube_coordinator.async_fetch_feed', AsyncMock(side_effect=TimeoutError)) as rss, patch('aiohttp.ClientSession.get', side_effect=TimeoutError) as request:
+        result = await hass.config_entries.options.async_configure(result['flow_id'], {
+            CONF_API_KEY: 'k', 'youtube_channel_fr': DEFAULT_YOUTUBE_FR,
+            'youtube_channel_en': DEFAULT_YOUTUBE_EN, 'youtube_starbase_fr': True,
+            'youtube_channel_fr2': DEFAULT_YOUTUBE_FR2,
+        })
+    assert result['type'] is FlowResultType.CREATE_ENTRY
+    assert entry.options['youtube_channel_fr'] == DEFAULT_YOUTUBE_FR
+    assert entry.options['youtube_channel_en'] == DEFAULT_YOUTUBE_EN
+    assert entry.options['youtube_channel_fr2'] == DEFAULT_YOUTUBE_FR2
+    rss.assert_not_called()
+    request.assert_not_called()
