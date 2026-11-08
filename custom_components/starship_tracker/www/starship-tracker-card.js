@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.22.0";
+const CARD_VERSION = "1.23.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -81,7 +81,7 @@ const trEntry = (d) => TIMELINE_FR[String(d || "").trim().toLowerCase().replace(
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_youtube: true, youtube_carousel_lang: "both", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, youtube_live_badges_en: false, youtube_count_youtube_fr: 0, youtube_count_youtube_fr_starbase: 0, youtube_count_youtube_en: 0, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
+  show_youtube: true, youtube_carousel_lang: "both", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, youtube_live_badges_en: true, youtube_count_youtube_fr: 0, youtube_count_youtube_fr_starbase: 0, youtube_count_youtube_en: 0, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
 };
 
 const LABELS = {
@@ -488,10 +488,11 @@ class StarshipTrackerCard extends HTMLElement {
     const carousels = [];
     const spacexCarHtml = C.show_carousel && C.show_carousel_spacex !== false && allM.length ? (carBlock("spacex", "🚀 SpaceX Starship", allM.map(spacexTile).join(""))) : "";
     if (C.show_carousel && C.show_youtube) youtubeChannels.forEach(([language, key, , name]) => {
-      if (C["show_carousel_" + key] === false || !(youtubeLanguage === "both" || language === youtubeLanguage)) return;
+      // NASASpaceflight (lives Starship) is always shown, whatever the language filter.
+      if (C["show_carousel_" + key] === false || !(key === "youtube_en" || youtubeLanguage === "both" || language === youtubeLanguage)) return;
       const st = this._state(key);
       if (!st || ["unknown", "unavailable"].includes(st.state)) return;
-      const withLive = key === "youtube_fr" || key === "youtube_fr_starbase" || (key === "youtube_en" && C.youtube_live_badges_en === true);
+      const withLive = key === "youtube_fr" || key === "youtube_fr_starbase" || (key === "youtube_en" && C.youtube_live_badges_en !== false);
       const list = Array.isArray(st.attributes?.videos) && st.attributes.videos.length ? st.attributes.videos : [st.attributes || {}];
       const vids = list.filter((v) => v && typeof v === "object").map((v) => ({
         language, url: safeUrl(v.url), title: v.title || st.state, thumbnail: safeUrl(v.thumbnail),
