@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.22.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.23.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -206,6 +206,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.23.0** : le carrousel NASASpaceflight s'affiche toujours, quelle que soit la langue, avec badges live activés par défaut (`youtube_live_badges_en: false` pour les retirer). EN: NASASpaceflight carousel always shown, live badges on by default.
+
 **1.22.0** : carrousels UFOTINIK, StarBase FR et NASASpaceflight affichés par défaut (`youtube_carousel_lang: both`), nombre de vidéos par chaîne réglable (`youtube_count_youtube_fr`, `youtube_count_youtube_fr_starbase`, `youtube_count_youtube_en`, 0 = toutes, jusqu'à 50 vidéos Starship par chaîne). EN: all three YouTube carousels shown by default, per-channel video count (0 = all, up to 50).
 
 **1.21.0** : lives filtrés sur « starship » aussi, heure estimée marquée « ≈ », événement `starship_tracker_youtube_live` (`status` `upcoming`/`live`, `scheduled`, `title`, `url`, `channel`, `language`) une fois par état, option `youtube_live_badges_en` pour NASASpaceflight, parseur YouTube séparé (`youtube_parser.py`).
@@ -344,7 +346,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.22.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.23.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
