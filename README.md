@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.24.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.24.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -206,6 +206,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.24.1** : tests sur de vraies pages YouTube enregistrées (UFOTINIK, StarBase FR, NASASpaceflight) pour détecter un changement de format, wiki en anglais. EN: recorded YouTube page tests, English wiki.
+
 **1.24.0** : Quality Scale **Platinum** (typage strict `mypy --strict` en CI, `py.typed`), indicateur « ≈ » conservé à la fusion des vidéos. EN: Platinum quality scale (strict typing).
 
 **1.23.1** : badges Quality Scale Gold et Wiki, wiki mis à jour (carrousels, live, Gold). EN: Gold and wiki badges, wiki refreshed.
@@ -350,7 +352,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.24.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.24.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
