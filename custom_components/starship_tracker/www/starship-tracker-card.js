@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.24.1";
+const CARD_VERSION = "1.25.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -81,7 +81,7 @@ const trEntry = (d) => TIMELINE_FR[String(d || "").trim().toLowerCase().replace(
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_youtube: true, youtube_carousel_lang: "both", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, youtube_live_badges_en: true, youtube_count_youtube_fr: 0, youtube_count_youtube_fr_starbase: 0, youtube_count_youtube_en: 0, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
+  show_youtube: true, youtube_carousel_lang: "both", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, show_carousel_live: true, youtube_live_badges_en: true, youtube_count_youtube_fr: 0, youtube_count_youtube_fr_starbase: 0, youtube_count_youtube_en: 0, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
 };
 
 const LABELS = {
@@ -109,6 +109,7 @@ const LABELS = {
   show_carousel_youtube_fr: "Carrousel UFOTINIK (FR) / UFOTINIK carousel",
   show_carousel_youtube_fr_starbase: "Carrousel StarBase FR / StarBase FR carousel",
   show_carousel_youtube_en: "Carrousel NASASpaceflight (EN) / NASASpaceflight carousel",
+  show_carousel_live: "Carrousel lives en direct / Live streams carousel",
   carousel_count: "Nb vignettes / Max tiles",
   youtube_count_youtube_fr: "Nb vidéos UFOTINIK (0 = toutes) / UFOTINIK videos (0 = all)",
   youtube_count_youtube_fr_starbase: "Nb vidéos StarBase FR (0 = toutes) / StarBase FR videos (0 = all)",
@@ -140,7 +141,7 @@ class StarshipTrackerCard extends HTMLElement {
         { type: "expandable", name: "", title: "Compteurs SpaceX / SpaceX counters", flatten: true, schema: [b("show_stats")] },
         { type: "expandable", name: "", title: "Carrousel / Carousel", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [b("show_carousel"), num("carousel_count", 50)] },
-          { type: "grid", name: "", flatten: true, schema: [b("show_carousel_spacex"), b("show_carousel_youtube_fr"), b("show_carousel_youtube_fr_starbase"), b("show_carousel_youtube_en"), b("youtube_live_badges_en")] },
+          { type: "grid", name: "", flatten: true, schema: [b("show_carousel_spacex"), b("show_carousel_youtube_fr"), b("show_carousel_youtube_fr_starbase"), b("show_carousel_youtube_en"), b("show_carousel_live"), b("youtube_live_badges_en")] },
           { type: "grid", name: "", flatten: true, schema: ["youtube_count_youtube_fr", "youtube_count_youtube_fr_starbase", "youtube_count_youtube_en"].map((name) => ({ name, selector: { number: { min: 0, max: 50, mode: "box" } } })) },
           { name: "youtube_carousel_lang", selector: { select: { options: [
             { value: "auto", label: "Auto (langue HA / HA language)" },
@@ -486,6 +487,7 @@ class StarshipTrackerCard extends HTMLElement {
         <div class="car-count" role="status" aria-live="polite"></div>
       </div></div>`;
     const carousels = [];
+    const liveVids = [];
     const spacexCarHtml = C.show_carousel && C.show_carousel_spacex !== false && allM.length ? (carBlock("spacex", "🚀 SpaceX Starship", allM.map(spacexTile).join(""))) : "";
     if (C.show_carousel && C.show_youtube) youtubeChannels.forEach(([language, key, , name]) => {
       // NASASpaceflight (lives Starship) is always shown, whatever the language filter.
@@ -501,9 +503,14 @@ class StarshipTrackerCard extends HTMLElement {
       // Per channel count (0 = all). Legacy carousel_count applies only when set explicitly.
       const perChannel = C["youtube_count_" + key];
       const max = perChannel > 0 ? perChannel : (this._userCount ? C.carousel_count : vids.length);
+      // Videos currently live go to a dedicated carousel (e.g. 24/7 streams).
+      if (C.show_carousel_live !== false && withLive) {
+        for (let i = vids.length - 1; i >= 0; i--) if (vids[i].live_status === "live") liveVids.unshift({ ...vids.splice(i, 1)[0], name });
+      }
       vids.splice(max);
       if (vids.length) carousels.push(carBlock(key, `📺 ${name} (${language.toUpperCase()})`, vids.map((v) => ytTile(v, withLive)).join("")));
     });
+    if (liveVids.length) carousels.unshift(carBlock("live", "🔴 En direct / Live", liveVids.map((v) => ytTile(v, true)).join("")));
     const carouselHtml = carousels.join("");
 
     const keepScrolls = {};
