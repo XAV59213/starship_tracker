@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.17.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.17.2**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -193,6 +193,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.17.2** : le détail de la mission Starship s'affiche juste sous le carrousel SpaceX, avant les carrousels YouTube.
+
 **1.17.1** : le carrousel SpaceX affiche toutes les missions Starship ; `carousel_count` ne limite plus que les carrousels YouTube.
 
 **1.17.0** : la carte affiche 4 carrousels séparés : 🚀 SpaceX Starship, 📺 UFOTINIK (FR), 📺 StarBase FR (FR), 📺 NASASpaceflight (EN), chacun avec les 15 dernières vidéos Starship (attribut `videos` des capteurs YouTube). `youtube_carousel_lang` filtre toujours les carrousels YouTube affichés ; options `show_carousel_spacex`, `show_carousel_youtube_fr`, `show_carousel_youtube_fr_starbase`, `show_carousel_youtube_en` pour masquer chacun ; `carousel_count` s'applique par carrousel.
@@ -317,7 +319,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.17.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.17.2**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
@@ -331,6 +333,7 @@ Public RSS is polled every 10 minutes without a YouTube API key/account. Sensors
 
 Copy [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml) into an automation's YAML editor, replace the notification service and use `event_data: {language: en}` for English notifications (`fr` for French). Notifications require your own automation.
 
+- **1.17.2** — Starship mission details now appear right below the SpaceX carousel, before the YouTube carousels.
 - **1.17.1** — SpaceX carousel shows all Starship missions; `carousel_count` only limits YouTube carousels.
 - **1.17.0** — Card now shows 4 separate carousels (SpaceX Starship, UFOTINIK, StarBase FR, NASASpaceflight), each with the last 15 Starship videos (new `videos` sensor attribute). Per-carousel toggles `show_carousel_spacex`, `show_carousel_youtube_fr`, `show_carousel_youtube_fr_starbase`, `show_carousel_youtube_en`; `carousel_count` is per carousel.
 - **1.16.1** — Fixed European YouTube consent handling, browser request headers and anonymous consent preferences, canonical-first channel identification (never recommended-video channelId), offline suggested-handle mapping and UC ID defaults. UC IDs require no RSS/network validation; other resolutions have a 15-second timeout with a clear error. Replace any previously saved incorrect channel ID manually.
