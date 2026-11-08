@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.20.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.21.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -133,6 +133,7 @@ Renseignez une chaîne française (`youtube_channel_fr`), une chaîne anglaise/a
 - Entités créées uniquement pour les chaînes configurées : `sensor.starship_tracker_youtube_fr` / `sensor.starship_tracker_youtube_en`. État = dernier titre correspondant (255 caractères max), attributs `title` (complet), `url`, `published` (ISO 8601 avec fuseau), `thumbnail`, `channel` (ID UC), `video_id`. Sans correspondance : état inconnu. En cas d'échec réseau : seule l'entité de la chaîne concernée devient indisponible.
 - Carte : bloc **📺 Vidéos YouTube**, liens FR / EN ; option `show_youtube: true` par défaut. La dernière vidéo de chaque langue choisie apparaît aussi en tête du carrousel (miniature, titre original, date, badge FR/EN). Un clic ouvre YouTube, pas les détails de mission. `youtube_carousel_lang: auto` sélectionne FR si l’interface HA est française, sinon EN ; valeurs possibles `auto`, `fr`, `en`, `both`. `lang: fr` dans la carte peut forcer la langue de son interface. `carousel_count` limite le total des vignettes, vidéos comprises ; le compteur les inclut. `show_youtube: false` masque les liens et les vignettes ; `show_carousel: false` masque seulement le carrousel. Les champs `youtube_fr` / `youtube_en` permettent de choisir une entité renommée si nécessaire. Le titre original de la vidéo est conservé.
 - Événement `starship_tracker_youtube_video` : `language` (`fr` / `en`), `title`, `url`, `channel`, `published`. La première lecture établit un historique silencieux ; les identifiants vus sont conservés dans le stockage Home Assistant, donc aucun doublon au redémarrage. Un changement de chaîne ou de filtre crée un nouvel historique silencieux.
+- Événement `starship_tracker_youtube_live` : `status` (`upcoming` / `live`), `scheduled`, `title`, `url`, `channel`, `language`. Émis une seule fois par vidéo et par état (persistant).
 
 ### Résolution YouTube / consentement européen (1.16.1)
 
@@ -204,6 +205,8 @@ Integration icons and logos live in `custom_components/starship_tracker/brand/` 
 used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
+
+**1.21.0** : lives filtrés sur « starship » aussi, heure estimée marquée « ≈ », événement `starship_tracker_youtube_live` (`status` `upcoming`/`live`, `scheduled`, `title`, `url`, `channel`, `language`) une fois par état, option `youtube_live_badges_en` pour NASASpaceflight, parseur YouTube séparé (`youtube_parser.py`).
 
 **1.20.0** : carrousels UFOTINIK et StarBase FR, badges « À venir » (avec date/heure), « En direct » et « Terminé » pour les lives.
 
@@ -339,7 +342,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.20.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.21.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
@@ -349,7 +352,7 @@ In **Configure**, verified UC IDs are prefilled, with offline alias conversion f
 
 Public RSS is polled every 10 minutes without a YouTube API key/account. Sensors `sensor.starship_tracker_youtube_fr` and `_youtube_en` expose the latest matching title and `title`, `url`, `published`, `thumbnail`, `channel`, `video_id` attributes. Only configured channels create sensors. The bundled card shows FR/EN links by default (`show_youtube: true`; optional entity overrides `youtube_fr` / `youtube_en`). Latest-video tiles come first in the carousel with thumbnail, original title, date and FR/EN badge; clicking opens YouTube, not mission details. `youtube_carousel_lang: auto` follows the HA/card UI language (French → FR, otherwise EN); overrides: `fr`, `en`, `both`. Optional card `lang: fr` forces French UI. The position counter and `carousel_count` include video tiles. `show_youtube: false` hides both tiles and links; `show_carousel: false` hides the carousel only. A failed channel becomes unavailable without blocking SpaceX or the other language.
 
-`starship_tracker_youtube_video` carries `language`, `title`, `url`, `channel`, `published`. No alerts on the initial baseline or channel/filter changes; seen IDs persist across restarts. RSS only covers recent uploads, so long outages may miss videos. Premiere listings may precede playback; live-start detection is not guaranteed.
+`starship_tracker_youtube_video` carries `language`, `title`, `url`, `channel`, `published`. No alerts on the initial baseline or channel/filter changes; seen IDs persist across restarts. RSS only covers recent uploads, so long outages may miss videos. Premiere listings may precede playback; live-start detection is not guaranteed. `starship_tracker_youtube_live` (`status` upcoming/live, `scheduled`, `title`, `url`, `channel`, `language`) fires once per video and state. Card option `youtube_live_badges_en` adds live badges to NASASpaceflight; estimated times show "≈".
 
 Copy [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml) into an automation's YAML editor, replace the notification service and use `event_data: {language: en}` for English notifications (`fr` for French). Notifications require your own automation.
 

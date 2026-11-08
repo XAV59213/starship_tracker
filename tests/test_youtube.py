@@ -292,7 +292,7 @@ def _lockup(video_id, title, texts, badges=None, start=None):
 def test_stream_tab_upcoming_live_and_ended():
     now = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
     page = _tab_page([
-        _lockup("eeeeeeeeeee", "Lancement sans mot cle", ["Scheduled for Nov 15, 2026, 8:00 PM"], [
+        _lockup("eeeeeeeeeee", "Starship lancement", ["Scheduled for Nov 15, 2026, 8:00 PM"], [
             {"text": "UPCOMING", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING"},
         ]),
         _lockup("fffffffffff", "Starship en cours", ["12K watching"], [
@@ -309,6 +309,7 @@ def test_stream_tab_upcoming_live_and_ended():
     assert set(videos) == {"eeeeeeeeeee", "fffffffffff", "ggggggggggg"}
     assert videos["eeeeeeeeeee"]["live_status"] == "upcoming"
     assert videos["eeeeeeeeeee"]["scheduled"].startswith("2026-11-15T20:00:00")
+    assert videos["eeeeeeeeeee"]["scheduled_approx"] is True
     assert videos["fffffffffff"]["live_status"] == "live"
     assert "live_status" in videos["fffffffffff"]
     assert videos["ggggggggggg"]["live_status"] == "ended"
@@ -340,15 +341,16 @@ def test_video_renderer_start_time_and_merge_keeps_rss_date():
     start = datetime(2026, 11, 20, 18, 30, tzinfo=UTC)
     renderer = {"videoRenderer": {
         "videoId": "lllllllllll",
-        "title": {"runs": [{"text": "Compte a rebours"}]},
+        "title": {"runs": [{"text": "Starship compte a rebours"}]},
         "upcomingEventData": {"startTime": str(int(start.timestamp()))},
         "thumbnailOverlays": [{"thumbnailOverlayTimeStatusRenderer": {"style": "UPCOMING", "text": {"simpleText": "UPCOMING"}}}],
     }}
     page = _tab_page([{"richItemRenderer": {"content": renderer}}])
     found = parse_channel_tab(page, "starship", now, streams=True)
     assert found[0]["live_status"] == "upcoming"
+    assert "scheduled_approx" not in found[0]
     assert found[0]["scheduled"] == start.isoformat()
-    rss = {"video_id": "lllllllllll", "title": "Compte a rebours", "url": found[0]["url"], "published": "2026-11-08T12:00:00+00:00", "thumbnail": found[0]["thumbnail"]}
+    rss = {"video_id": "lllllllllll", "title": "Starship compte a rebours", "url": found[0]["url"], "published": "2026-11-08T12:00:00+00:00", "thumbnail": found[0]["thumbnail"]}
     merged = merge_videos([rss], found)
     assert merged[0]["published"] == rss["published"]
     assert merged[0]["live_status"] == "upcoming"
@@ -450,3 +452,13 @@ async def test_rss_request_has_consent_preferences(hass, aioclient_mock):
         assert await async_fetch_feed(session, CHANNEL, "")
     assert request.call_args.kwargs["headers"] == YOUTUBE_HEADERS
     assert request.call_args.kwargs["cookies"] == YOUTUBE_CONSENT_COOKIES
+
+
+def test_stream_tab_live_without_keyword_is_dropped():
+    now = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
+    page = _tab_page([
+        _lockup("jjjjjjjjjjj", "Falcon 9 live", ["5K watching"], [
+            {"text": "LIVE", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE"},
+        ]),
+    ])
+    assert parse_channel_tab(page, "starship", now, streams=True) == []
