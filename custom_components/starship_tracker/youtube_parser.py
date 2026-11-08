@@ -330,7 +330,7 @@ def _video_from_item(
         return None
     if keyword.casefold() not in title.casefold() and not (allow_any_live and status in {"upcoming", "live"}):
         return None
-    video = {
+    video: dict[str, Any] = {
         "video_id": video_id,
         "title": title,
         "url": f"https://www.youtube.com/watch?v={video_id}",
