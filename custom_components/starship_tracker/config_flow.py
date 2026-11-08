@@ -95,7 +95,7 @@ class StarshipTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=self.add_suggested_values_to_schema(DATA_SCHEMA, user_input or {}),
+            data_schema=self.add_suggested_values_to_schema(DATA_SCHEMA, user_input or {}),  # type: ignore[arg-type]  # voluptuous vs probatio (HA 2026.10+)
             errors=errors,
             description_placeholders={"register_url": "https://newsapi.org/register"},
         )
@@ -116,7 +116,7 @@ class StarshipTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = error
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=KEY_SCHEMA,
+            data_schema=KEY_SCHEMA,  # type: ignore[arg-type]
             errors=errors,
             description_placeholders={"register_url": "https://newsapi.org/register"},
         )
@@ -133,7 +133,7 @@ class StarshipTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = error
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=KEY_SCHEMA,
+            data_schema=KEY_SCHEMA,  # type: ignore[arg-type]
             errors=errors,
             description_placeholders={"register_url": "https://newsapi.org/register"},
         )
@@ -157,7 +157,7 @@ class StarshipTrackerOptionsFlow(OptionsFlow):
             CONF_TRANSLATE, (self.hass.config.language or "").startswith("fr")
         )
         schema = vol.Schema(
-            {
+            {  # type: ignore[misc]
                 vol.Required(CONF_API_KEY, default=self.config_entry.data.get(CONF_API_KEY, "")): str,
                 vol.Optional(CONF_TRANSLATE, default=translate): bool,
                 **{
@@ -172,7 +172,7 @@ class StarshipTrackerOptionsFlow(OptionsFlow):
         )
         return self.async_show_form(
             step_id="init",
-            data_schema=self.add_suggested_values_to_schema(schema, user_input or {}),
+            data_schema=self.add_suggested_values_to_schema(schema, user_input or {}),  # type: ignore[arg-type]
             errors=errors,
             description_placeholders={"register_url": "https://newsapi.org/register"},
         )

@@ -10,7 +10,7 @@ from __future__ import annotations
 import html
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone, tzinfo
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -222,7 +222,7 @@ def _to_24(hour: int, ampm: str) -> int | None:
     return None
 
 
-def _build(year: int, month: int, day: int, hour: int, minute: int, tz: datetime.tzinfo) -> datetime | None:
+def _build(year: int, month: int, day: int, hour: int, minute: int, tz: tzinfo) -> datetime | None:
     if day < 1 or day > 31 or minute > 59 or hour > 23:
         return None
     try:
@@ -257,11 +257,11 @@ def _zoned_time(text: str) -> tuple[int, int, ZoneInfo] | None:
         after = [item for item in found if item[0].start() >= window.start()]
         if after:
             found = after
-    _, hour, minute, zone = found[0]
-    return hour, minute, zone
+    _, hour, minute, zone_info = found[0]
+    return hour, minute, zone_info
 
 
-def _next_year(month: int, day: int, hour: int, minute: int, tz: datetime.tzinfo, today: datetime) -> datetime | None:
+def _next_year(month: int, day: int, hour: int, minute: int, tz: tzinfo, today: datetime) -> datetime | None:
     """Prochaine occurrence du mois/jour (aujourd'hui inclus), dans ``tz``."""
     year = today.astimezone(tz).year
     local_today = today.astimezone(tz).date()
@@ -285,7 +285,7 @@ def _resolve_date(text: str, now: datetime) -> tuple[datetime, bool] | None:
         year_text = match.group("year")
         year = int(year_text) if year_text else None
         if clock is None:
-            tz: datetime.tzinfo = timezone.utc
+            tz: tzinfo = timezone.utc
             hour, minute, has_time = 0, 0, False
         else:
             hour, minute, tz = clock

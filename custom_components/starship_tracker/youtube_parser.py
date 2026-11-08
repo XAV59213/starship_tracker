@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import UTC, datetime, timedelta
+from collections.abc import Iterator
 from typing import Any
 
 VIDEO_ID = re.compile(r"[\w-]{11}", re.ASCII)
@@ -55,7 +56,7 @@ _SCHEDULED_PREFIX = re.compile(
 )
 
 
-def _lockups(node: Any):
+def _lockups(node: Any) -> Iterator[Any]:
     if isinstance(node, dict):
         if isinstance(node.get("lockupViewModel"), dict):
             yield node["lockupViewModel"]
@@ -66,7 +67,7 @@ def _lockups(node: Any):
             yield from _lockups(value)
 
 
-def _renderers(node: Any):
+def _renderers(node: Any) -> Iterator[Any]:
     if isinstance(node, dict):
         for key in ("videoRenderer", "gridVideoRenderer"):
             if isinstance(node.get(key), dict):
@@ -78,7 +79,7 @@ def _renderers(node: Any):
             yield from _renderers(value)
 
 
-def _grids(node: Any):
+def _grids(node: Any) -> Iterator[Any]:
     if isinstance(node, dict):
         for key in ("richGridRenderer", "gridRenderer"):
             if isinstance(node.get(key), dict):
@@ -97,7 +98,7 @@ def _text_content(node: Any) -> str:
         return ""
     for key in ("simpleText", "content"):
         if isinstance(node.get(key), str):
-            return node[key].strip()
+            return str(node[key]).strip()
     runs = node.get("runs")
     if isinstance(runs, list):
         return "".join(
@@ -158,7 +159,7 @@ def _metadata_texts(item: dict[str, Any]) -> list[str]:
     return texts
 
 
-def _start_times(node: Any):
+def _start_times(node: Any) -> Iterator[Any]:
     if isinstance(node, dict):
         data = node.get("upcomingEventData")
         if isinstance(data, dict) and data.get("startTime") not in (None, ""):
@@ -306,7 +307,7 @@ def _live_status(
 
 def _video_from_item(
     item: dict[str, Any], keyword: str, now: datetime, *, streams: bool, allow_any_live: bool
-) -> dict[str, str] | None:
+) -> dict[str, Any] | None:
     video_id = str(item.get("contentId") or item.get("videoId") or "")
     meta = (item.get("metadata") or {}).get("lockupMetadataViewModel") or {}
     title = _text_content(meta.get("title")) or _text_content(item.get("title"))
@@ -346,7 +347,7 @@ def _video_from_item(
     return video
 
 
-def _remember(videos: dict[str, dict[str, str]], order: list[str], video: dict[str, str]) -> None:
+def _remember(videos: dict[str, dict[str, Any]], order: list[str], video: dict[str, Any]) -> None:
     current = videos.get(video["video_id"])
     if current is None:
         videos[video["video_id"]] = video
@@ -359,7 +360,7 @@ def _remember(videos: dict[str, dict[str, str]], order: list[str], video: dict[s
 
 def parse_channel_tab(
     page: str, keyword: str, now: datetime, *, streams: bool = False
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """Read one public channel tab. Streams may carry upcoming, live and ended states.
 
     Missing or unexpected markup yields what can be read, never an exception.
@@ -377,7 +378,7 @@ def parse_channel_tab(
     for grid in grids or [data]:
         items.extend(_lockups(grid))
         items.extend(_renderers(grid))
-    videos: dict[str, dict[str, str]] = {}
+    videos: dict[str, dict[str, Any]] = {}
     order: list[str] = []
     for item in items:
         if not isinstance(item, dict):
@@ -393,12 +394,12 @@ def parse_channel_tab(
     return [videos[video_id] for video_id in order]
 
 
-def merge_videos(*lists: list[dict[str, str]], limit: int = 50) -> list[dict[str, str]]:
+def merge_videos(*lists: list[dict[str, Any]], limit: int = 50) -> list[dict[str, Any]]:
     """Deduplicate by video id (RSS dates win) and sort newest first.
 
     A later copy can still add live_status or scheduled when the RSS entry has none.
     """
-    merged: dict[str, dict[str, str]] = {}
+    merged: dict[str, dict[str, Any]] = {}
     for videos in lists:
         for video in videos:
             current = merged.get(video["video_id"])
