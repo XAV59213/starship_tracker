@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import xml.etree.ElementTree as ET
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -19,7 +21,9 @@ from custom_components.starship_tracker.youtube_coordinator import (
     YouTubeCoordinator,
     async_fetch_feed,
     async_resolve_channel,
+    merge_videos,
     parse_channel_id,
+    parse_channel_tab,
     parse_feed,
 )
 
@@ -256,6 +260,99 @@ async def test_persist_before_alert_and_keep_latest_when_feed_rolls_over(hass):
     assert not events
     with patch(FETCH, AsyncMock(return_value=[])):
         assert (await c._async_update_data())["video_id"] == OLD[0]
+
+
+def _tab_page(items, *, grid=True):
+    body = {"contents": items}
+    if grid:
+        body = {"contents": {"richGridRenderer": {"contents": items}}}
+    return "<script>var ytInitialData = " + json.dumps(body) + ";</script>"
+
+
+def _lockup(video_id, title, texts, badges=None, start=None):
+    item = {
+        "contentId": video_id,
+        "metadata": {"lockupMetadataViewModel": {
+            "title": {"content": title},
+            "metadata": {"contentMetadataViewModel": {"metadataRows": [
+                {"metadataParts": [{"text": {"content": text}} for text in texts]},
+            ]}},
+        }},
+        "contentImage": {"thumbnailViewModel": {"overlays": [{
+            "thumbnailBottomOverlayViewModel": {"badges": [
+                {"thumbnailBadgeViewModel": badge} for badge in (badges or [])
+            ]},
+        }]}},
+    }
+    if start is not None:
+        item["upcomingEventData"] = {"startTime": str(start)}
+    return {"richItemRenderer": {"content": {"lockupViewModel": item}}}
+
+
+def test_stream_tab_upcoming_live_and_ended():
+    now = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
+    page = _tab_page([
+        _lockup("eeeeeeeeeee", "Lancement sans mot cle", ["Scheduled for Nov 15, 2026, 8:00 PM"], [
+            {"text": "UPCOMING", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING"},
+        ]),
+        _lockup("fffffffffff", "Starship en cours", ["12K watching"], [
+            {"text": "LIVE", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE"},
+        ]),
+        _lockup("ggggggggggg", "Starship replay", ["24K", "Streamed 8d ago"], [
+            {"text": "56:26", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT"},
+        ]),
+        _lockup("hhhhhhhhhhh", "Hors sujet", ["Streamed 2d ago"], [
+            {"text": "10:00", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT"},
+        ]),
+    ])
+    videos = {video["video_id"]: video for video in parse_channel_tab(page, "starship", now, streams=True)}
+    assert set(videos) == {"eeeeeeeeeee", "fffffffffff", "ggggggggggg"}
+    assert videos["eeeeeeeeeee"]["live_status"] == "upcoming"
+    assert videos["eeeeeeeeeee"]["scheduled"].startswith("2026-11-15T20:00:00")
+    assert videos["fffffffffff"]["live_status"] == "live"
+    assert "live_status" in videos["fffffffffff"]
+    assert videos["ggggggggggg"]["live_status"] == "ended"
+    assert "scheduled" not in videos["ggggggggggg"]
+    assert videos["ggggggggggg"]["published"].startswith("2026-10-31T12:00:00")
+
+
+def test_stream_tab_relative_upcoming_and_videos_tab_stays_plain():
+    now = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
+    upcoming = _lockup("iiiiiiiiiii", "Starship premiere", ["Premieres in 3 hours"], [
+        {"text": "UPCOMING", "badgeStyle": "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING"},
+    ])
+    plain = _lockup("jjjjjjjjjjj", "Starship montage", ["4 days ago"])
+    broken = {"richItemRenderer": {"content": {"lockupViewModel": {
+        "contentId": "kkkkkkkkkkk", "metadata": None, "contentImage": {"thumbnailViewModel": {"overlays": "nope"}},
+    }}}}
+    streams = parse_channel_tab(_tab_page([upcoming, broken]), "starship", now, streams=True)
+    assert streams[0]["live_status"] == "upcoming"
+    assert streams[0]["scheduled"] == (now + timedelta(hours=3)).isoformat()
+    videos = parse_channel_tab(_tab_page([plain, broken]), "starship", now, streams=False)
+    assert videos[0]["video_id"] == "jjjjjjjjjjj"
+    assert "live_status" not in videos[0]
+    assert parse_channel_tab("<html>no data</html>", "starship", now, streams=True) == []
+    assert parse_channel_tab("<script>var ytInitialData = {;</script>", "starship", now) == []
+
+
+def test_video_renderer_start_time_and_merge_keeps_rss_date():
+    now = datetime(2026, 11, 8, 12, 0, tzinfo=UTC)
+    start = datetime(2026, 11, 20, 18, 30, tzinfo=UTC)
+    renderer = {"videoRenderer": {
+        "videoId": "lllllllllll",
+        "title": {"runs": [{"text": "Compte a rebours"}]},
+        "upcomingEventData": {"startTime": str(int(start.timestamp()))},
+        "thumbnailOverlays": [{"thumbnailOverlayTimeStatusRenderer": {"style": "UPCOMING", "text": {"simpleText": "UPCOMING"}}}],
+    }}
+    page = _tab_page([{"richItemRenderer": {"content": renderer}}])
+    found = parse_channel_tab(page, "starship", now, streams=True)
+    assert found[0]["live_status"] == "upcoming"
+    assert found[0]["scheduled"] == start.isoformat()
+    rss = {"video_id": "lllllllllll", "title": "Compte a rebours", "url": found[0]["url"], "published": "2026-11-08T12:00:00+00:00", "thumbnail": found[0]["thumbnail"]}
+    merged = merge_videos([rss], found)
+    assert merged[0]["published"] == rss["published"]
+    assert merged[0]["live_status"] == "upcoming"
+    assert merged[0]["scheduled"] == start.isoformat()
 
 
 async def test_channel_tab_failure_keeps_rss_result(hass, caplog):

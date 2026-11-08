@@ -280,13 +280,15 @@ class StarshipTrackerCard extends HTMLElement {
           countdown: "Compte à rebours", tags: "Tags", live: "EN DIRECT", nolive: "Pas de live en cours", watch: "Regarder",
           news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", hide: "Masquer les détails", status: "Statut", page: "Page mission spacex.com", webcast: "Webcast", links: "Liens", nodesc: "Pas de description disponible", bSoon: "À VENIR", watchVideo: "Voir la vidéo", plan: "Plan de vol", cdTitle: "COMPTE À REBOURS", tlTitle: "CHRONOLOGIE DU VOL", approx: "Horaires approximatifs", loading: "Chargement des détails…", bLive: "DIRECT", bDone: "TERMINÉ", none: "Aucune mission annoncée",
           upcoming: "Prochaines missions Starship", past: "Derniers vols Starship", video: "▶ Vidéo", nomission: "Aucune",
-          s1: "Missions terminées", s2: "Atterrissages totaux", s3: "Réutilisations totales" }
+          s1: "Missions terminées", s2: "Atterrissages totaux", s3: "Réutilisations totales",
+          ytSoon: "À venir", ytLive: "En direct", ytDone: "Terminé" }
       : { provider: "Provider", vehicle: "Vehicle", pad: "Launch Pad", location: "Location", date: "Target Date",
           window: "Launch window", dateSource: "Date source", sourceFeed: "Feed", sourcePage: "Mission page",
           countdown: "Countdown", tags: "Tags", live: "LIVE", nolive: "No live stream", watch: "Watch",
           news: "Starship news", nonews: "No news", details: "Details", hide: "Hide details", status: "Status", page: "spacex.com mission page", webcast: "Webcast", links: "Links", nodesc: "No description available", bSoon: "UPCOMING", watchVideo: "Watch video", plan: "Flight plan", cdTitle: "COUNTDOWN", tlTitle: "FLIGHT TIMELINE", approx: "All times approximate", loading: "Loading details…", bLive: "LIVE", bDone: "COMPLETED", none: "No mission announced",
           upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None",
-          s1: "Completed missions", s2: "Total landings", s3: "Total reflights" };
+          s1: "Completed missions", s2: "Total landings", s3: "Total reflights",
+          ytSoon: "Upcoming", ytLive: "Live", ytDone: "Ended" };
 
     const C = this._config;
     const fr = lang === "fr" && !this._orig;
@@ -431,12 +433,29 @@ class StarshipTrackerCard extends HTMLElement {
       ? panelOf(sel || { ...a, mission: next.state }, isNextSel) : "";
     const badge = (m) => m.is_live ? ["live", L.bLive] : m.mission_status === "final" ? ["done", L.bDone] : ["soon", L.bSoon];
     const youtubeLanguage = C.youtube_carousel_lang === "auto" ? lang : C.youtube_carousel_lang;
-    const ytTile = (m) => {
-      const published = Date.parse(m.published);
-      const d = Number.isFinite(published) ? new Date(published).toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "—";
+    const ytBadge = (status, language, enabled) => {
+      if (enabled && status === "live") return ["live", L.ytLive];
+      if (enabled && status === "upcoming") return ["soon", L.ytSoon];
+      if (enabled && status === "ended") return ["done", L.ytDone];
+      return ["youtube", String(language || "").toUpperCase()];
+    };
+    const ytWhen = (m, upcoming) => {
+      const raw = upcoming && m.scheduled ? m.scheduled : m.published;
+      const parsed = Date.parse(raw);
+      if (!Number.isFinite(parsed)) return "—";
+      const date = new Date(parsed);
+      return upcoming
+        ? date.toLocaleString(lang, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        : date.toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" });
+    };
+    // Badges de direct seulement pour UFOTINIK et StarBase FR. NASASpaceflight garde la langue.
+    const ytTile = (m, withLive) => {
+      const status = withLive && typeof m.live_status === "string" ? m.live_status : "";
+      const [cls, lbl] = ytBadge(status, m.language, withLive);
+      const d = ytWhen(m, status === "upcoming");
       return `<a class="tile youtube" data-youtube="${m.language}" href="${esc(m.url)}" target="_blank" rel="noopener" aria-label="${esc(m.title)} (${m.language.toUpperCase()})">
-        <div class="timg">${m.thumbnail ? `<img src="${esc(m.thumbnail)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge youtube">${m.language.toUpperCase()}</span></div>
-        <div class="tt">▶ ${esc(m.title)}</div><div class="ts">${esc(d)} · YouTube</div><div class="bar youtube"></div>
+        <div class="timg">${m.thumbnail ? `<img src="${esc(m.thumbnail)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge ${cls}">${esc(lbl)}</span></div>
+        <div class="tt">▶ ${esc(m.title)}</div><div class="ts">${esc(d)} · YouTube</div><div class="bar ${cls}"></div>
       </a>`;
     };
     const spacexTile = (m) => {
@@ -462,10 +481,13 @@ class StarshipTrackerCard extends HTMLElement {
       if (C["show_carousel_" + key] === false || !(youtubeLanguage === "both" || language === youtubeLanguage)) return;
       const st = this._state(key);
       if (!st || ["unknown", "unavailable"].includes(st.state)) return;
+      const withLive = key === "youtube_fr" || key === "youtube_fr_starbase";
       const list = Array.isArray(st.attributes?.videos) && st.attributes.videos.length ? st.attributes.videos : [st.attributes || {}];
-      const vids = list.map((v) => ({ language, url: safeUrl(v.url), title: v.title || st.state, thumbnail: safeUrl(v.thumbnail), published: v.published }))
-        .filter((v) => v.url).slice(0, C.carousel_count);
-      if (vids.length) carousels.push(carBlock(key, `📺 ${name} (${language.toUpperCase()})`, vids.map(ytTile).join("")));
+      const vids = list.filter((v) => v && typeof v === "object").map((v) => ({
+        language, url: safeUrl(v.url), title: v.title || st.state, thumbnail: safeUrl(v.thumbnail),
+        published: v.published, scheduled: v.scheduled, live_status: v.live_status,
+      })).filter((v) => v.url).slice(0, C.carousel_count);
+      if (vids.length) carousels.push(carBlock(key, `📺 ${name} (${language.toUpperCase()})`, vids.map((v) => ytTile(v, withLive)).join("")));
     });
     const carouselHtml = carousels.join("");
 
