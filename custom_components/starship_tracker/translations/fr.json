@@ -32,7 +32,18 @@
         "name": "Actualités Starship"
       },
       "next_mission": {
-        "name": "Prochaine mission Starship"
+        "name": "Prochaine mission Starship",
+        "state_attributes": {
+          "mission_image": {
+            "name": "Image de la mission"
+          },
+          "mission_description": {
+            "name": "Description de la mission"
+          },
+          "mission_url": {
+            "name": "Page mission"
+          }
+        }
       },
       "countdown": {
         "name": "Compte à rebours lancement Starship"

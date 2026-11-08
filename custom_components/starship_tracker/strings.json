@@ -32,7 +32,18 @@
         "name": "Starship news"
       },
       "next_mission": {
-        "name": "Next Starship mission"
+        "name": "Next Starship mission",
+        "state_attributes": {
+          "mission_image": {
+            "name": "Mission image"
+          },
+          "mission_description": {
+            "name": "Mission description"
+          },
+          "mission_url": {
+            "name": "Mission page"
+          }
+        }
       },
       "countdown": {
         "name": "Starship launch countdown"

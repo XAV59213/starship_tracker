@@ -298,3 +298,66 @@ def _resolve_date(text: str, now: datetime) -> tuple[datetime, bool] | None:
             continue
         return built, has_time
     return None
+
+
+MISSION_DESCRIPTION_MAX = 1500
+_HREF = re.compile(r"""href\s*=\s*["']?(https?://[^"'\s>]+)""", re.IGNORECASE)
+_CMS_BASE = "https://content.spacex.com"
+
+
+def image_url(image: Any) -> str | None:
+    """URL absolue d'une image Strapi (format « large » de préférence)."""
+    if not isinstance(image, dict):
+        return None
+    formats = image.get("formats") or {}
+    url = None
+    for size in ("large", "medium"):
+        fmt = formats.get(size) if isinstance(formats, dict) else None
+        if isinstance(fmt, dict) and fmt.get("url"):
+            url = fmt["url"]
+            break
+    url = url or image.get("url")
+    if not isinstance(url, str) or not url:
+        return None
+    if url.startswith("//"):
+        return "https:" + url
+    if url.startswith("/"):
+        return _CMS_BASE + url
+    return url if url.startswith(("http://", "https://")) else None
+
+
+def extract_mission_details(payload: dict[str, Any] | None) -> dict[str, Any]:
+    """Image, description texte (limitée) et liens d'une page ``/missions/{link}``."""
+    if not isinstance(payload, dict):
+        return {}
+    texts: list[str] = []
+    links: list[str] = []
+    for paragraph in payload.get("paragraphs") or []:
+        content = paragraph.get("content") if isinstance(paragraph, dict) else paragraph
+        if not isinstance(content, str):
+            continue
+        for href in _HREF.findall(content):
+            if href not in links:
+                links.append(href)
+        plain = _plain(content)
+        if plain:
+            texts.append(plain)
+    description = "\n\n".join(texts)
+    if len(description) > MISSION_DESCRIPTION_MAX:
+        description = description[: MISSION_DESCRIPTION_MAX - 1].rstrip() + "…"
+    webcasts: list[str] = []
+    for cast in payload.get("webcasts") or []:
+        url = None
+        if isinstance(cast, dict):
+            url = cast.get("url") or cast.get("link") or cast.get("videoUrl")
+        elif isinstance(cast, str):
+            url = cast
+        if isinstance(url, str) and url.startswith(("http://", "https://")) and url not in webcasts:
+            webcasts.append(url)
+    return {
+        "mission_image": image_url(payload.get("imageDesktop")) or image_url(payload.get("imageMobile")),
+        "mission_image_mobile": image_url(payload.get("imageMobile")),
+        "mission_description": description or None,
+        "mission_links": links[:8],
+        "webcast_links": webcasts[:5],
+    }

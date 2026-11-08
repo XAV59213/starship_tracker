@@ -254,6 +254,10 @@ class StarshipMissionsSensor(CoordinatorEntity[StarshipLiveCoordinator], SensorE
                     "is_live",
                     "date_source",
                     "launch_window_minutes",
+                    "image",
+                    "link",
+                    "vehicle",
+                    "mission_type",
                 )
             }
             (past if m.get("mission_status") == "final" else upcoming).append(item)

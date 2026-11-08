@@ -224,3 +224,27 @@ def test_sort_uses_the_parsed_date_when_the_feed_is_empty() -> None:
     parsed = parse_launch_prose(FLIGHT_15, now=NOW)
     assert tile_sort_key(flight_15, parsed) < tile_sort_key(dated, None)
     assert tile_sort_key(flight_15, None) == ("9999", "")
+
+
+extract_mission_details = mission_date.extract_mission_details
+
+
+def test_extract_mission_details():
+    payload = {
+        "imageDesktop": {"url": "/cms-assets/a.png", "formats": {"large": {"url": "https://content.spacex.com/cms-assets/large_a.png"}}},
+        "imageMobile": {"url": "/cms-assets/m.png"},
+        "paragraphs": [{"content": FLIGHT_15}, {"content": 'Watch <a href="https://x.com/SpaceX">on X</a> &amp; more.'}],
+        "webcasts": [{"url": "https://www.youtube.com/watch?v=1"}],
+    }
+    d = extract_mission_details(payload)
+    assert d["mission_image"] == "https://content.spacex.com/cms-assets/large_a.png"
+    assert d["mission_image_mobile"] == "https://content.spacex.com/cms-assets/m.png"
+    assert "<" not in d["mission_description"] and "Watch on X & more." in d["mission_description"]
+    assert d["mission_links"] == ["https://www.spacex.com/vehicles/starship/", "https://x.com/SpaceX"]
+    assert d["webcast_links"] == ["https://www.youtube.com/watch?v=1"]
+
+
+def test_extract_mission_details_limits():
+    d = extract_mission_details({"paragraphs": [{"content": "a" * 5000}]})
+    assert len(d["mission_description"]) == mission_date.MISSION_DESCRIPTION_MAX
+    assert extract_mission_details(None) == {}

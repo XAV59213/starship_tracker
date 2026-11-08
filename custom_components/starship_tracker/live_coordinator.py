@@ -31,7 +31,15 @@ from .const import (
     SPACEX_TILES_URL,
     TRACKED_VEHICLE,
 )
-from .mission_date import ParsedLaunch, apply_launch_fields, parse_mission_page, tile_needs_mission_page, tile_sort_key
+from .mission_date import (
+    ParsedLaunch,
+    apply_launch_fields,
+    extract_mission_details,
+    image_url,
+    parse_mission_page,
+    tile_needs_mission_page,
+    tile_sort_key,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,6 +68,7 @@ def _mission(
     parsed = schedules.get(link) if schedules is not None and link else None
     mission = {
         "mission": tile.get("title"),
+        "link": link,
         "launch_date": tile.get("launchDate"),
         "launch_time": tile.get("launchTime"),
         "launch_site": tile.get("launchSite"),
@@ -72,6 +81,8 @@ def _mission(
         "video_url": SPACEX_LAUNCH_URL.format(link=link) if link else LIVE_URL,
         "call_to_action": tile.get("callToAction"),
         "is_live": bool(tile.get("isLive")),
+        "image": image_url(tile.get("ongoingMissionImageDesktop")) or image_url(tile.get("imageDesktop"))
+        or image_url(tile.get("imageMobile")),
     }
     return apply_launch_fields(mission, tile, parsed)
 
@@ -204,6 +215,8 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         self._all_checked: datetime | None = None
         # link -> (fetch UTC, date extraite). Rafraîchi au plus toutes les 30 min.
         self._mission_cache: dict[str, tuple[datetime, ParsedLaunch | None]] = {}
+        # link -> détails (image, description, liens) issus de la même page mission
+        self._details_cache: dict[str, dict[str, Any]] = {}
 
     async def _async_update_data(self) -> LiveStatus:
         upcoming: list[dict[str, Any]] | None = None
@@ -226,6 +239,11 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         status = _parse(tiles, schedules)
         status.last_flight = _last_flight(self._all_starship or [])
         status.missions = _missions(combined, schedules)
+        await self._async_add_details(status.next_mission)
+        # Repli image : page mission déjà en cache (aucune requête supplémentaire)
+        for m in status.missions:
+            if not m.get("image") and m.get("link") in self._details_cache:
+                m["image"] = self._details_cache[m["link"]].get("mission_image")
         self._fire_transition(status)
         self._fire_launch_soon(status)
         return status
@@ -254,6 +272,7 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         try:
             payload = await async_fetch_mission(self._session, link)
             parsed = parse_mission_page(payload, now=now)
+            self._details_cache[link] = extract_mission_details(payload)
         except (aiohttp.ClientError, TimeoutError, ValueError, UpdateFailed) as err:
             _LOGGER.debug("Page mission %s indisponible : %s", link, err)
             parsed = previous
@@ -270,6 +289,26 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
                 )
         self._mission_cache[link] = (now, parsed)
         return parsed
+
+    async def _async_add_details(self, mission: dict[str, Any] | None) -> None:
+        """Ajoute image / description / liens de la page mission à la prochaine mission."""
+        if not mission:
+            return
+        link = mission.get("link")
+        if not isinstance(link, str) or not link:
+            return
+        await self._async_cached_mission(link)
+        details = self._details_cache.get(link) or {}
+        mission.update(
+            {
+                "mission_image": details.get("mission_image") or mission.get("image"),
+                "mission_image_mobile": details.get("mission_image_mobile"),
+                "mission_description": details.get("mission_description"),
+                "mission_links": details.get("mission_links") or [],
+                "webcast_links": details.get("webcast_links") or [],
+                "mission_url": mission.get("url"),
+            }
+        )
 
     async def _async_refresh_all(self, force: bool = False) -> None:
         """Met à jour le cache du flux complet /launches (dernier vol, missions en cours)."""
