@@ -176,10 +176,10 @@ async def async_fetch_tiles(session: aiohttp.ClientSession, url: str, timeout: i
     async with asyncio.timeout(timeout):
         async with session.get(url) as resp:
             if resp.status != 200:
-                raise UpdateFailed(f"spacex.com a répondu {resp.status}")
+                raise UpdateFailed(translation_domain=DOMAIN, translation_key="spacex_status", translation_placeholders={"status": str(resp.status), "url": "spacex.com"})
             data = await resp.json(content_type=None)
     if not isinstance(data, list):
-        raise UpdateFailed("Format de réponse spacex.com inattendu")
+        raise UpdateFailed(translation_domain=DOMAIN, translation_key="spacex_format", translation_placeholders={"url": "spacex.com"})
     return data
 
 
@@ -189,10 +189,10 @@ async def async_fetch_mission(session: aiohttp.ClientSession, link: str) -> dict
     async with asyncio.timeout(20):
         async with session.get(url) as resp:
             if resp.status != 200:
-                raise UpdateFailed(f"spacex.com a répondu {resp.status} pour {link}")
+                raise UpdateFailed(translation_domain=DOMAIN, translation_key="spacex_status", translation_placeholders={"status": str(resp.status), "url": str(link)})
             data = await resp.json(content_type=None)
     if not isinstance(data, dict):
-        raise UpdateFailed(f"Format de page mission inattendu pour {link}")
+        raise UpdateFailed(translation_domain=DOMAIN, translation_key="spacex_format", translation_placeholders={"url": str(link)})
     return data
 
 
@@ -229,7 +229,7 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
             error = err
         await self._async_refresh_all(force=upcoming is None)
         if upcoming is None and self._all_starship is None:
-            raise UpdateFailed(f"spacex.com indisponible : {error}") from error
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="spacex_unavailable", translation_placeholders={"error": str(error)}) from error
         tiles = list(upcoming or [])
         known = {t.get("link") for t in tiles}
         tiles += [

@@ -163,6 +163,30 @@
   "exceptions": {
     "refresh_failed": {
       "message": "Could not refresh SpaceX data (spacex.com unreachable)."
+    },
+    "newsapi_error": {
+      "message": "NewsAPI error {status}: {error}"
+    },
+    "newsapi_network": {
+      "message": "NewsAPI network error: {error}"
+    },
+    "newsapi_invalid": {
+      "message": "Invalid NewsAPI response: {error}"
+    },
+    "stats_failed": {
+      "message": "Could not read SpaceX statistics: {error}"
+    },
+    "spacex_status": {
+      "message": "spacex.com replied {status} for {url}"
+    },
+    "spacex_format": {
+      "message": "Unexpected spacex.com response format for {url}"
+    },
+    "spacex_unavailable": {
+      "message": "spacex.com unavailable: {error}"
+    },
+    "youtube_failed": {
+      "message": "YouTube {language} feed unavailable: {error}"
     }
   }
 }

@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.18.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.19.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -66,7 +66,19 @@ Version actuelle : **1.18.0**. Nécessite Home Assistant **2024.11.0** ou plus r
 
 ### Qualité / Quality scale
 
-Niveau **Silver** de l'[Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) : voir [`quality_scale.yaml`](custom_components/starship_tracker/quality_scale.yaml). Tests : `pytest` (pytest-homeassistant-custom-component), couverture ~96 %.
+Niveau **Gold** de l'[Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) : voir [`quality_scale.yaml`](custom_components/starship_tracker/quality_scale.yaml). Tests : `pytest` (pytest-homeassistant-custom-component), couverture ~96 %.
+
+### Dépannage / Troubleshooting
+
+- **HACS bloqué / « [object Object] »** : redémarre Home Assistant puis « Retélécharger » dans HACS.
+- **Carte non mise à jour** : vide le cache du navigateur (ou de l'app compagnon) après une mise à jour.
+- **Capteur indisponible** : spacex.com, NewsAPI ou YouTube injoignable ; le message traduit est dans le journal, les autres sources continuent.
+- **Chaîne YouTube refusée** : colle l'ID `UC…` de la chaîne ; voir le flux `https://www.youtube.com/feeds/videos.xml?channel_id=UC…`.
+- **Carrousel NASASpaceflight absent** : en mode `auto`, seules les chaînes de la langue de HA s'affichent ; choisir `both`.
+- **Page véhicule** : ce capteur est désactivé par défaut ; l'activer dans Paramètres › Entités si besoin.
+- **Diagnostics** : Appareil Starship Tracker › Télécharger les diagnostics (clé NewsAPI masquée).
+
+Plus de détails : [wiki Dépannage](https://github.com/XAV59213/starship_tracker/wiki/Depannage).
 
 ## ⚠️ Sécurité
 
@@ -192,6 +204,8 @@ Integration icons and logos live in `custom_components/starship_tracker/brand/` 
 used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
+
+**1.19.0** : Quality Scale **Gold** : icônes dans `icons.json`, messages d'erreur traduits (FR/EN), capteur « page véhicule » désactivé par défaut, section Dépannage.
 
 **1.18.0** : les carrousels YouTube montrent les 15 dernières vidéos Starship de chaque chaîne, pas seulement celles parmi les 15 derniers uploads : en plus du flux RSS, lecture des onglets publics Vidéos et En direct (sans clé API, date estimée pour les plus anciennes). Les notifications restent basées sur le RSS.
 
@@ -321,7 +335,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.18.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.19.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
@@ -335,6 +349,7 @@ Public RSS is polled every 10 minutes without a YouTube API key/account. Sensors
 
 Copy [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml) into an automation's YAML editor, replace the notification service and use `event_data: {language: en}` for English notifications (`fr` for French). Notifications require your own automation.
 
+- **1.19.0** — Quality Scale **Gold**: `icons.json`, translated update errors (FR/EN), vehicle page sensor disabled by default, troubleshooting section.
 - **1.18.0** — YouTube carousels show the last 15 Starship videos per channel: RSS plus public Videos/Live tabs (no API key, estimated dates for older items). Notifications still use RSS only.
 - **1.17.2** — Starship mission details now appear right below the SpaceX carousel, before the YouTube carousels.
 - **1.17.1** — SpaceX carousel shows all Starship missions; `carousel_count` only limits YouTube carousels.

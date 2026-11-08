@@ -29,7 +29,6 @@ class StarshipRefreshButton(ButtonEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "refresh"
-    _attr_icon = "mdi:refresh"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, entry: StarshipConfigEntry) -> None:

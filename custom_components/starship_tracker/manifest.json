@@ -13,6 +13,6 @@
   "documentation": "https://github.com/XAV59213/starship_tracker",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/XAV59213/starship_tracker/issues",
-  "quality_scale": "silver",
-  "version": "1.18.0"
+  "quality_scale": "gold",
+  "version": "1.19.0"
 }
