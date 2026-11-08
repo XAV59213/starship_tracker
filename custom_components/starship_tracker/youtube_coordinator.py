@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
@@ -216,6 +217,90 @@ async def async_fetch_feed(
             return parse_feed(await _read_text(response), keyword)
 
 
+_AGO = re.compile(r"(\d+)\s*(mo|months?|y|years?|w|weeks?|d|days?|h|hours?|min|minutes?|m|s|seconds?)\b", re.I)
+_AGO_UNITS = {"s": 1, "m": 60, "min": 60, "h": 3600, "d": 86400, "w": 604800, "mo": 2592000, "y": 31536000}
+
+
+def _ago_to_iso(text: str, now: datetime) -> str | None:
+    """Estimate a publish date from YouTube's relative text ("4d ago", "2 years ago")."""
+    match = _AGO.search(text or "")
+    if not match:
+        return None
+    unit = match.group(2).lower()
+    key = "mo" if unit.startswith("mo") else "min" if unit.startswith("min") else unit[0]
+    return (now - timedelta(seconds=int(match.group(1)) * _AGO_UNITS[key])).isoformat()
+
+
+def _lockups(node: Any):
+    if isinstance(node, dict):
+        if "lockupViewModel" in node:
+            yield node["lockupViewModel"]
+        for value in node.values():
+            yield from _lockups(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _lockups(value)
+
+
+def parse_channel_tab(page: str, keyword: str, now: datetime) -> list[dict[str, str]]:
+    """Read public channel tab videos (newest first) matching the keyword."""
+    match = re.search(r"var ytInitialData = (\{.*?\});</script>", page, re.S)
+    if not match:
+        return []
+    try:
+        data = json.loads(match.group(1))
+    except ValueError:
+        return []
+    videos = []
+    for item in _lockups(data):
+        video_id = item.get("contentId", "")
+        meta = (item.get("metadata") or {}).get("lockupMetadataViewModel") or {}
+        title = ((meta.get("title") or {}).get("content") or "").strip()
+        if not VIDEO_ID.fullmatch(video_id) or not title or keyword.casefold() not in title.casefold():
+            continue
+        rows = ((meta.get("metadata") or {}).get("contentMetadataViewModel") or {}).get("metadataRows") or []
+        texts = [((part.get("text") or {}).get("content") or "") for row in rows for part in row.get("metadataParts") or []]
+        published = next((iso for iso in (_ago_to_iso(t, now) for t in texts if "ago" in t) if iso), None)
+        if not published:
+            continue
+        videos.append({
+            "video_id": video_id, "title": title,
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+            "published": published,
+            "thumbnail": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+        })
+    return videos
+
+
+async def async_fetch_channel_videos(
+    session: aiohttp.ClientSession, channel: str, keyword: str
+) -> list[dict[str, str]]:
+    """Older matching videos/lives from public channel tabs (best effort)."""
+    now = datetime.now(UTC)
+    found: list[dict[str, str]] = []
+    for tab in ("videos", "streams"):
+        try:
+            async with asyncio.timeout(YOUTUBE_TIMEOUT):
+                async with session.get(
+                    f"https://www.youtube.com/channel/{channel}/{tab}",
+                    params={"hl": "en"}, headers=YOUTUBE_HEADERS, cookies=YOUTUBE_CONSENT_COOKIES,
+                ) as response:
+                    response.raise_for_status()
+                    found += parse_channel_tab(await _read_text(response, 6 * MAX_RESPONSE), keyword, now)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            _LOGGER.debug("YouTube tab %s/%s: %s", channel, tab, err)
+    return found
+
+
+def merge_videos(*lists: list[dict[str, str]], limit: int = 15) -> list[dict[str, str]]:
+    """Deduplicate by video id (first list wins: exact RSS dates) and sort newest first."""
+    merged: dict[str, dict[str, str]] = {}
+    for videos in lists:
+        for video in videos:
+            merged.setdefault(video["video_id"], video)
+    return sorted(merged.values(), key=lambda v: datetime.fromisoformat(v["published"]), reverse=True)[:limit]
+
+
 class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
     """Independent coordinator per language: one broken channel cannot hide another."""
 
@@ -274,9 +359,12 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
             >= datetime.fromisoformat(latest["published"])
         ):
             latest = {**videos[0], "channel": self.channel}
-        if latest and videos:
-            # Recent Starship uploads for the per-channel card carousel.
-            latest = {**latest, "videos": [dict(video) for video in videos[:15]]}
+        if latest:
+            # Last 15 Starship videos for the card carousel: RSS plus public channel tabs.
+            extra = await async_fetch_channel_videos(
+                async_get_clientsession(self.hass), self.channel, self.keyword
+            )
+            latest = {**latest, "videos": merge_videos(videos, extra)}
         seen = list(
             dict.fromkeys([*self._seen, *(video["video_id"] for video in new)])
         )[-200:]

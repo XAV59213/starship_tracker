@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.17.2**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.18.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -193,6 +193,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.18.0** : les carrousels YouTube montrent les 15 dernières vidéos Starship de chaque chaîne, pas seulement celles parmi les 15 derniers uploads : en plus du flux RSS, lecture des onglets publics Vidéos et En direct (sans clé API, date estimée pour les plus anciennes). Les notifications restent basées sur le RSS.
+
 **1.17.2** : le détail de la mission Starship s'affiche juste sous le carrousel SpaceX, avant les carrousels YouTube.
 
 **1.17.1** : le carrousel SpaceX affiche toutes les missions Starship ; `carousel_count` ne limite plus que les carrousels YouTube.
@@ -319,7 +321,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.17.2**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.18.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
@@ -333,6 +335,7 @@ Public RSS is polled every 10 minutes without a YouTube API key/account. Sensors
 
 Copy [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml) into an automation's YAML editor, replace the notification service and use `event_data: {language: en}` for English notifications (`fr` for French). Notifications require your own automation.
 
+- **1.18.0** — YouTube carousels show the last 15 Starship videos per channel: RSS plus public Videos/Live tabs (no API key, estimated dates for older items). Notifications still use RSS only.
 - **1.17.2** — Starship mission details now appear right below the SpaceX carousel, before the YouTube carousels.
 - **1.17.1** — SpaceX carousel shows all Starship missions; `carousel_count` only limits YouTube carousels.
 - **1.17.0** — Card now shows 4 separate carousels (SpaceX Starship, UFOTINIK, StarBase FR, NASASpaceflight), each with the last 15 Starship videos (new `videos` sensor attribute). Per-carousel toggles `show_carousel_spacex`, `show_carousel_youtube_fr`, `show_carousel_youtube_fr_starbase`, `show_carousel_youtube_en`; `carousel_count` is per carousel.
