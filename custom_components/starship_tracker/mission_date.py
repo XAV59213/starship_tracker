@@ -305,7 +305,7 @@ _HREF = re.compile(r"""href\s*=\s*["']?(https?://[^"'\s>]+)""", re.IGNORECASE)
 _CMS_BASE = "https://content.spacex.com"
 
 
-def _image_url(image: Any) -> str | None:
+def image_url(image: Any) -> str | None:
     """URL absolue d'une image Strapi (format « large » de préférence)."""
     if not isinstance(image, dict):
         return None
@@ -355,8 +355,8 @@ def extract_mission_details(payload: dict[str, Any] | None) -> dict[str, Any]:
         if isinstance(url, str) and url.startswith(("http://", "https://")) and url not in webcasts:
             webcasts.append(url)
     return {
-        "mission_image": _image_url(payload.get("imageDesktop")) or _image_url(payload.get("imageMobile")),
-        "mission_image_mobile": _image_url(payload.get("imageMobile")),
+        "mission_image": image_url(payload.get("imageDesktop")) or image_url(payload.get("imageMobile")),
+        "mission_image_mobile": image_url(payload.get("imageMobile")),
         "mission_description": description or None,
         "mission_links": links[:8],
         "webcast_links": webcasts[:5],

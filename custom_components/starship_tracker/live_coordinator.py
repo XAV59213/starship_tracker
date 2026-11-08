@@ -35,6 +35,7 @@ from .mission_date import (
     ParsedLaunch,
     apply_launch_fields,
     extract_mission_details,
+    image_url,
     parse_mission_page,
     tile_needs_mission_page,
     tile_sort_key,
@@ -80,6 +81,8 @@ def _mission(
         "video_url": SPACEX_LAUNCH_URL.format(link=link) if link else LIVE_URL,
         "call_to_action": tile.get("callToAction"),
         "is_live": bool(tile.get("isLive")),
+        "image": image_url(tile.get("ongoingMissionImageDesktop")) or image_url(tile.get("imageDesktop"))
+        or image_url(tile.get("imageMobile")),
     }
     return apply_launch_fields(mission, tile, parsed)
 
@@ -237,6 +240,10 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         status.last_flight = _last_flight(self._all_starship or [])
         status.missions = _missions(combined, schedules)
         await self._async_add_details(status.next_mission)
+        # Repli image : page mission déjà en cache (aucune requête supplémentaire)
+        for m in status.missions:
+            if not m.get("image") and m.get("link") in self._details_cache:
+                m["image"] = self._details_cache[m["link"]].get("mission_image")
         self._fire_transition(status)
         self._fire_launch_soon(status)
         return status
@@ -294,7 +301,7 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         details = self._details_cache.get(link) or {}
         mission.update(
             {
-                "mission_image": details.get("mission_image"),
+                "mission_image": details.get("mission_image") or mission.get("image"),
                 "mission_image_mobile": details.get("mission_image_mobile"),
                 "mission_description": details.get("mission_description"),
                 "mission_links": details.get("mission_links") or [],

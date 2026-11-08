@@ -21,7 +21,7 @@ const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : null);
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_news: true, news_count: 5, show_stats: true,
+  show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 10,
 };
 
 const LABELS = {
@@ -38,6 +38,8 @@ const LABELS = {
   show_news: "Actualités / News",
   news_count: "Nb actualités / News count",
   show_stats: "Compteurs SpaceX / SpaceX counters",
+  show_carousel: "Carrousel d'images / Image carousel",
+  carousel_count: "Nb vignettes / Max tiles",
   total_launches: "Missions terminées / Completed missions",
   total_landings: "Atterrissages / Landings", total_reflights: "Réutilisations / Reflights",
   next: "Prochaine mission", countdown: "Countdown", status: "Statut mission",
@@ -63,6 +65,9 @@ class StarshipTrackerCard extends HTMLElement {
           ] },
         ] },
         { type: "expandable", name: "", title: "Compteurs SpaceX / SpaceX counters", flatten: true, schema: [b("show_stats")] },
+        { type: "expandable", name: "", title: "Carrousel / Carousel", flatten: true, schema: [
+          { type: "grid", name: "", flatten: true, schema: [b("show_carousel"), num("carousel_count", 30)] },
+        ] },
         { type: "expandable", name: "", title: "Missions", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [
             b("show_missions"), num("missions_count", 20), b("show_upcoming"), b("show_last"),
@@ -84,6 +89,7 @@ class StarshipTrackerCard extends HTMLElement {
   setConfig(config) {
     this._config = { ...DEFAULTS, ...(config || {}) };
     this._config.news_count = Math.max(1, Number(this._config.news_count) || DEFAULTS.news_count);
+    this._config.carousel_count = Math.max(1, Number(this._config.carousel_count) || DEFAULTS.carousel_count);
     this._config.missions_count = Math.max(1, Number(this._config.missions_count) || DEFAULTS.missions_count);
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this._timer && clearInterval(this._timer);
@@ -147,13 +153,13 @@ class StarshipTrackerCard extends HTMLElement {
       ? { provider: "Fournisseur", vehicle: "Véhicule", pad: "Rampe de lancement", location: "Emplacement", date: "Date cible",
           window: "Fenêtre de lancement", dateSource: "Source de la date", sourceFeed: "Flux", sourcePage: "Page mission",
           countdown: "Compte à rebours", tags: "Tags", live: "EN DIRECT", nolive: "Pas de live en cours", watch: "Regarder",
-          news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", hide: "Masquer les détails", status: "Statut", page: "Page mission spacex.com", webcast: "Webcast", links: "Liens", nodesc: "Pas de description disponible", none: "Aucune mission annoncée",
+          news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", hide: "Masquer les détails", status: "Statut", page: "Page mission spacex.com", webcast: "Webcast", links: "Liens", nodesc: "Pas de description disponible", bSoon: "À VENIR", bLive: "DIRECT", bDone: "TERMINÉ", none: "Aucune mission annoncée",
           upcoming: "Prochaines missions Starship", past: "Derniers vols Starship", video: "▶ Vidéo", nomission: "Aucune",
           s1: "Missions terminées", s2: "Atterrissages totaux", s3: "Réutilisations totales" }
       : { provider: "Provider", vehicle: "Vehicle", pad: "Launch Pad", location: "Location", date: "Target Date",
           window: "Launch window", dateSource: "Date source", sourceFeed: "Feed", sourcePage: "Mission page",
           countdown: "Countdown", tags: "Tags", live: "LIVE", nolive: "No live stream", watch: "Watch",
-          news: "Starship news", nonews: "No news", details: "Details", hide: "Hide details", status: "Status", page: "spacex.com mission page", webcast: "Webcast", links: "Links", nodesc: "No description available", none: "No mission announced",
+          news: "Starship news", nonews: "No news", details: "Details", hide: "Hide details", status: "Status", page: "spacex.com mission page", webcast: "Webcast", links: "Links", nodesc: "No description available", bSoon: "UPCOMING", bLive: "LIVE", bDone: "COMPLETED", none: "No mission announced",
           upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None",
           s1: "Completed missions", s2: "Total landings", s3: "Total reflights" };
 
@@ -224,18 +230,54 @@ class StarshipTrackerCard extends HTMLElement {
       ? new Date(launchMs).toLocaleString(lang, { weekday: "long", day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" })
       : "TBD";
     const showBtn = hasMission && C.show_details_button;
-    const panel = showBtn && this._open ? `<div class="panel">
-        ${img ? `<img class="mimg" src="${esc(img)}" alt="${esc(next.state)}" loading="lazy">` : ""}
-        <div class="ptitle">${esc(next.state)}</div>
-        ${row(L.date, esc(fullDate))}
-        ${windowText ? row(L.window, esc(windowText)) : ""}
-        ${row(L.pad, esc(a.launch_site || "Starbase"))}
-        ${row(L.status, esc(statusText))}
-        <div class="desc">${desc}</div>
-        ${C.show_videos && casts.length ? `<div class="row"><span class="k">${L.links}:</span> ${casts.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</div>` : ""}
-        <div class="row"><a href="${esc(murl)}" target="_blank" rel="noopener">${L.page} →</a></div>
+    const fmtDate = (m) => {
+      const ms = this._instant(null, m);
+      if (ms) return new Date(ms).toLocaleString(lang, { weekday: "long", day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+      return m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "long", year: "numeric" }) : "TBD";
+    };
+    const allM = [...(ma.upcoming || []), ...[...(ma.past || [])].reverse()];
+    const sel = this._sel ? allM.find((m) => (m.link || m.mission) === this._sel) : null;
+    const isNextSel = !sel || (a.link && sel.link === a.link);
+    const panelOf = (m, isNext) => {
+      const pimg = safeUrl(isNext ? a.mission_image : null) || safeUrl(m.image);
+      const wm = Number(m.launch_window_minutes);
+      const st = isNext ? statusText : (m.mission_status || "—");
+      const plinks = (isNext ? casts : [m.video_url, m.url].map(safeUrl).filter(Boolean).filter((u, i, arr) => arr.indexOf(u) === i));
+      const page = safeUrl(isNext ? murl : m.url) || url;
+      return `<div class="panel">
+        ${pimg ? `<img class="mimg" src="${esc(pimg)}" alt="${esc(m.mission)}" loading="lazy">` : ""}
+        <div class="ptitle">${esc(m.mission)}</div>
+        ${row(L.date, esc(isNext ? fullDate : fmtDate(m)))}
+        ${Number.isInteger(wm) && wm > 0 ? row(L.window, esc(wm + " min")) : ""}
+        ${row(L.pad, esc(m.launch_site || "Starbase"))}
+        ${row(L.status, esc(st))}
+        ${isNext ? `<div class="desc">${desc}</div>` : ""}
+        ${C.show_videos && plinks.length ? `<div class="row"><span class="k">${L.links}:</span> ${plinks.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(host(u))}</a>`).join(" · ")}</div>` : ""}
+        <div class="row"><a href="${esc(page)}" target="_blank" rel="noopener">${L.page} →</a></div>
+      </div>`;
+    };
+    const panel = this._open && (sel || showBtn)
+      ? panelOf(sel || { ...a, mission: next.state }, isNextSel) : "";
+    const badge = (m) => m.is_live ? ["live", L.bLive] : m.mission_status === "final" ? ["done", L.bDone] : ["soon", L.bSoon];
+    const tiles = allM.slice(0, C.carousel_count);
+    const carouselHtml = C.show_carousel && tiles.length ? `<div class="car">
+        <button class="arr l" type="button" aria-label="prev">‹</button>
+        <div class="track">${tiles.map((m) => {
+          const [cls, lbl] = badge(m);
+          const im = safeUrl(m.image);
+          const d = m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "TBD";
+          return `<div class="tile ${cls}" data-key="${esc(m.link || m.mission)}" role="button" tabindex="0">
+            <div class="timg" ${im ? `style="background-image:url('${esc(im)}')"` : ""}><span class="badge ${cls}">${esc(lbl)}</span></div>
+            <div class="tt">${esc(m.mission)}</div>
+            <div class="ts">${esc(d)}${m.launch_site ? " · " + esc(m.launch_site) : ""}</div>
+            <div class="bar ${cls}"></div>
+          </div>`;
+        }).join("")}</div>
+        <button class="arr r" type="button" aria-label="next">›</button>
       </div>` : "";
 
+    const oldTrack = this.shadowRoot.querySelector(".track");
+    const keepScroll = oldTrack ? oldTrack.scrollLeft : 0;
     this.shadowRoot.innerHTML = `
       <style>
         ha-card { padding: 16px; }
@@ -260,6 +302,20 @@ class StarshipTrackerCard extends HTMLElement {
         .ptitle { font-weight: 700; font-size: 1.1em; margin-bottom: 4px; }
         .desc p { margin: 6px 0; line-height: 1.4; }
         .muted0 { color: var(--secondary-text-color); }
+        .car { position: relative; margin: 12px 0 4px; }
+        .track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; padding-bottom: 2px; }
+        .track::-webkit-scrollbar { display: none; }
+        .tile { flex: 0 0 calc(50% - 6px); scroll-snap-align: start; cursor: pointer; border-radius: 14px; overflow: hidden; background: var(--secondary-background-color); position: relative; }
+        .timg { aspect-ratio: 16 / 9; background: #111 center / cover no-repeat; position: relative; border-radius: 14px 14px 0 0; }
+        .badge { position: absolute; top: 8px; right: 8px; padding: 3px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 700; color: #fff; letter-spacing: .04em; }
+        .badge.soon, .bar.soon { background: #1e88e5; }
+        .badge.live, .bar.live { background: #d32f2f; }
+        .badge.done, .bar.done { background: #757575; }
+        .tt { font-weight: 700; padding: 8px 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ts { font-size: 0.8em; color: var(--secondary-text-color); padding: 2px 10px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bar { height: 4px; width: 100%; }
+        .arr { position: absolute; top: calc(50% - 34px); width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer; z-index: 2; background: rgba(0,0,0,.6); color: #fff; font-size: 1.4em; line-height: 1; }
+        .arr.l { left: 4px; } .arr.r { right: 4px; }
         .sl { font-size: 0.8em; color: var(--secondary-text-color); text-transform: uppercase; }
       </style>
       <ha-card>
@@ -275,6 +331,7 @@ class StarshipTrackerCard extends HTMLElement {
         ${hasMission && C.show_countdown ? row(L.countdown, `<span class="cd">${esc(this._countdown(launchMs))}</span>`) : ""}
         ${C.show_details ? row(L.tags, hasMission ? (tags || "—") + " |" : esc(L.none)) : ""}
         ${hasMission && C.show_details ? `<div class="row"><a href="${esc(url)}" target="_blank" rel="noopener">${L.details} →</a>${C.show_videos ? ` · <a href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</div>` : ""}
+        ${carouselHtml}
         ${showBtn ? `<button class="dbtn" type="button">${this._open ? L.hide : "ℹ️ " + L.details}</button>` : ""}
         ${panel}
         ${C.show_live ? `<div class="live ${isLive ? "on" : ""}">
@@ -286,7 +343,28 @@ class StarshipTrackerCard extends HTMLElement {
         ${C.show_news ? `<h3>${L.news}</h3><ul>${newsHtml}</ul>` : ""}
       </ha-card>`;
     const btn = this.shadowRoot.querySelector(".dbtn");
-    if (btn) btn.addEventListener("click", (ev) => { ev.stopPropagation(); this._open = !this._open; this._render(); });
+    if (btn) btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (this._open && this._sel) { this._sel = null; } else { this._open = !this._open; this._sel = null; }
+      this._render();
+    });
+    const track = this.shadowRoot.querySelector(".track");
+    if (track) {
+      track.style.scrollBehavior = "auto"; track.scrollLeft = keepScroll; track.style.scrollBehavior = "";
+      const step = (dir) => track.scrollBy({ left: dir * track.clientWidth * 0.9, behavior: "smooth" });
+      this.shadowRoot.querySelector(".arr.l").addEventListener("click", (ev) => { ev.stopPropagation(); step(-1); });
+      this.shadowRoot.querySelector(".arr.r").addEventListener("click", (ev) => { ev.stopPropagation(); step(1); });
+      track.querySelectorAll(".tile").forEach((t) => {
+        const open = (ev) => {
+          ev.stopPropagation();
+          const key = t.dataset.key;
+          if (this._open && this._sel === key) { this._open = false; this._sel = null; } else { this._open = true; this._sel = key; }
+          this._render();
+        };
+        t.addEventListener("click", open);
+        t.addEventListener("keydown", (ev) => { if (ev.key === "Enter") open(ev); });
+      });
+    }
   }
 }
 

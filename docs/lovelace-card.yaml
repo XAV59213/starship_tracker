@@ -1,5 +1,7 @@
 # Carte intégrée (recommandé) / Built-in card (recommended):
 #   type: custom:starship-tracker-card
+#   show_carousel: true        # carrousel d'images / image carousel
+#   carousel_count: 10
 #   show_details_button: true   # bouton « Détails » (photo + infos) / Details button
 # Starship Tracker — carte Lovelace / Lovelace card
 # Style « fiche mission » (titre « Mission (Provider) » + lignes), cartes natives uniquement.
