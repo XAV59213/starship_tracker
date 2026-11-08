@@ -17,9 +17,12 @@ SCAN_INTERVAL_NEWS: Final = timedelta(minutes=30)
 
 # Détection du live Starship via l'API publique du site spacex.com
 SPACEX_TILES_URL: Final = "https://content.spacex.com/api/spacex-website/launches-page-tiles/upcoming"
+SPACEX_MISSION_URL: Final = "https://content.spacex.com/api/spacex-website/missions/{link}"
 SPACEX_LAUNCH_URL: Final = "https://www.spacex.com/launches/{link}"
 TRACKED_VEHICLE: Final = "Starship"
 SCAN_INTERVAL_LIVE: Final = timedelta(minutes=5)
+# Page mission (prose) : seulement si le flux n'a pas de date, au plus toutes les 30 min.
+SCAN_INTERVAL_MISSION_PAGE: Final = timedelta(minutes=30)
 EVENT_LIVE_STARTED: Final = "starship_tracker_live_started"
 EVENT_LIVE_ENDED: Final = "starship_tracker_live_ended"
 EVENT_LAUNCH_SOON: Final = "starship_tracker_launch_soon"

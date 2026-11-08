@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.11.0";
+const CARD_VERSION = "1.12.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -116,10 +116,22 @@ class StarshipTrackerCard extends HTMLElement {
     return this._hass.states[this._entity(key)];
   }
 
-  _countdown(cd) {
-    const t = cd && Date.parse(cd.state);
-    if (!t) return "—";
-    let s = Math.floor((t - Date.now()) / 1000);
+  // Compte à rebours : état timestamp du sensor, sinon launch_date + launch_time (UTC).
+  _instant(cd, attrs) {
+    const stateMs = cd && Date.parse(cd.state);
+    if (stateMs) return stateMs;
+    const date = attrs && attrs.launch_date;
+    if (!date) return NaN;
+    if (String(date).includes("T")) return Date.parse(date);
+    const time = attrs.launch_time;
+    if (!time) return NaN;
+    const stamp = `${String(date).slice(0, 10)}T${time}`;
+    return Date.parse(/[zZ]|[+-]\d{2}:\d{2}$/.test(stamp) ? stamp : `${stamp}Z`);
+  }
+
+  _countdown(ms) {
+    if (!ms) return "—";
+    let s = Math.floor((ms - Date.now()) / 1000);
     if (s <= 0) return "T-0";
     const d = Math.floor(s / 86400); s %= 86400;
     const h = Math.floor(s / 3600); s %= 3600;
@@ -132,11 +144,13 @@ class StarshipTrackerCard extends HTMLElement {
     const lang = (this._hass.locale?.language || this._hass.language || "en").startsWith("fr") ? "fr" : "en";
     const L = lang === "fr"
       ? { provider: "Fournisseur", vehicle: "Véhicule", pad: "Rampe de lancement", location: "Emplacement", date: "Date cible",
+          window: "Fenêtre de lancement", dateSource: "Source de la date", sourceFeed: "Flux", sourcePage: "Page mission",
           countdown: "Compte à rebours", tags: "Tags", live: "EN DIRECT", nolive: "Pas de live en cours", watch: "Regarder",
           news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", none: "Aucune mission annoncée",
           upcoming: "Prochaines missions Starship", past: "Derniers vols Starship", video: "▶ Vidéo", nomission: "Aucune",
           s1: "Missions terminées", s2: "Atterrissages totaux", s3: "Réutilisations totales" }
       : { provider: "Provider", vehicle: "Vehicle", pad: "Launch Pad", location: "Location", date: "Target Date",
+          window: "Launch window", dateSource: "Date source", sourceFeed: "Feed", sourcePage: "Mission page",
           countdown: "Countdown", tags: "Tags", live: "LIVE", nolive: "No live stream", watch: "Watch",
           news: "Starship news", nonews: "No news", details: "Details", none: "No mission announced",
           upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None",
@@ -151,10 +165,15 @@ class StarshipTrackerCard extends HTMLElement {
     const status = this._state("status");
     const cd = this._state("countdown");
     const url = safeUrl(a.url) || safeUrl(live?.attributes?.url) || "https://www.spacex.com/vehicles/starship";
+    const launchMs = this._instant(cd, a);
     let date = a.launch_date || "TBD";
-    if (cd && Date.parse(cd.state)) {
-      date = new Date(cd.state).toLocaleString(lang, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    if (launchMs) {
+      date = new Date(launchMs).toLocaleString(lang, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
     }
+    const windowMin = Number(a.launch_window_minutes);
+    const windowText = Number.isInteger(windowMin) && windowMin > 0 ? `${windowMin} min` : "";
+    const sourceNames = { feed: L.sourceFeed, mission_page: L.sourcePage };
+    const sourceLabel = sourceNames[a.date_source] || "";
     const tags = [a.mission_type, status?.state && !["unknown", "unavailable"].includes(status.state) ? status.state : a.mission_status]
       .filter(Boolean).map(esc).join(" | ");
     const row = (k, v) => `<div class="row"><span class="k">${esc(k)}:</span> ${v}</div>`;
@@ -219,8 +238,10 @@ class StarshipTrackerCard extends HTMLElement {
         ${row(L.vehicle, esc(a.vehicle || "Starship"))}
         ${row(L.pad, esc(a.launch_site || "Starbase"))}
         ${row(L.location, "Starbase, Texas, United States")}
-        ${row(L.date, esc(hasMission ? date : "TBD"))}` : ""}
-        ${hasMission && C.show_countdown ? row(L.countdown, `<span class="cd">${esc(this._countdown(cd))}</span>`) : ""}
+        ${row(L.date, esc(hasMission ? date : "TBD"))}
+        ${hasMission && windowText ? row(L.window, esc(windowText)) : ""}
+        ${hasMission && sourceLabel ? row(L.dateSource, esc(sourceLabel)) : ""}` : ""}
+        ${hasMission && C.show_countdown ? row(L.countdown, `<span class="cd">${esc(this._countdown(launchMs))}</span>`) : ""}
         ${C.show_details ? row(L.tags, hasMission ? (tags || "—") + " |" : esc(L.none)) : ""}
         ${hasMission && C.show_details ? `<div class="row"><a href="${esc(url)}" target="_blank" rel="noopener">${L.details} →</a>${C.show_videos ? ` · <a href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</div>` : ""}
         ${C.show_live ? `<div class="live ${isLive ? "on" : ""}">
