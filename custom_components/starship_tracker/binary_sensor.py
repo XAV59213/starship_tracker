@@ -14,6 +14,9 @@ from .live_coordinator import StarshipLiveCoordinator
 from .sensor import _device_info
 
 
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: StarshipConfigEntry,

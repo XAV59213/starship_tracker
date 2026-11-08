@@ -31,6 +31,7 @@ from .const import (
     SPACEX_TILES_URL,
     TRACKED_VEHICLE,
 )
+from .translate import Translator, async_translate_mission
 from .mission_date import (
     ParsedLaunch,
     apply_launch_fields,
@@ -203,9 +204,10 @@ async def async_fetch_live(session: aiohttp.ClientSession) -> LiveStatus:
 class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
     """Vérifie toutes les 5 min si Starship est en live sur spacex.com."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, translate: bool = False) -> None:
         super().__init__(hass, _LOGGER, name=f"{DOMAIN}_live", update_interval=SCAN_INTERVAL_LIVE)
         self._session = async_get_clientsession(hass)
+        self._translator = Translator(hass) if translate else None
         # None = premier refresh : pas d'événement au démarrage de HA
         self._was_live: bool | None = None
         # (mission, date) déjà annoncés via EVENT_LAUNCH_SOON
@@ -240,6 +242,11 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         status.last_flight = _last_flight(self._all_starship or [])
         status.missions = _missions(combined, schedules)
         await self._async_add_details(status.next_mission)
+        if self._translator is not None and status.next_mission:
+            try:
+                status.next_mission.update(await async_translate_mission(self._translator, status.next_mission))
+            except Exception:  # noqa: BLE001 - la traduction ne doit jamais bloquer la mise à jour
+                _LOGGER.debug("Traduction FR impossible", exc_info=True)
         # Repli image : page mission déjà en cache (aucune requête supplémentaire)
         for m in status.missions:
             if not m.get("image") and m.get("link") in self._details_cache:

@@ -1,6 +1,7 @@
 """Config flow de Starship Tracker."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 import aiohttp
@@ -10,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResu
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_API_KEY, DOMAIN
+from .const import CONF_API_KEY, CONF_TRANSLATE, DOMAIN
 from .coordinator import InvalidApiKey, async_fetch_news
 
 DATA_SCHEMA = vol.Schema({vol.Required(CONF_API_KEY): str})
@@ -46,19 +47,51 @@ class StarshipTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             api_key = user_input[CONF_API_KEY].strip()
-            try:
-                await async_fetch_news(async_get_clientsession(self.hass), api_key)
-            except InvalidApiKey:
-                errors["base"] = "invalid_auth"
-            except (aiohttp.ClientError, TimeoutError):
-                errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
-                errors["base"] = "unknown"
+            if (error := await _validate_key(self.hass, api_key)) is not None:
+                errors["base"] = error
             else:
                 return self.async_create_entry(title="Starship Tracker", data={CONF_API_KEY: api_key})
 
         return self.async_show_form(
             step_id="user",
+            data_schema=DATA_SCHEMA,
+            errors=errors,
+            description_placeholders={"register_url": "https://newsapi.org/register"},
+        )
+
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
+        """Clé NewsAPI refusée : demande une nouvelle clé."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            api_key = user_input[CONF_API_KEY].strip()
+            if (error := await _validate_key(self.hass, api_key)) is None:
+                return self.async_update_reload_and_abort(
+                    self._get_reauth_entry(), data_updates={CONF_API_KEY: api_key}
+                )
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=DATA_SCHEMA,
+            errors=errors,
+            description_placeholders={"register_url": "https://newsapi.org/register"},
+        )
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Changer la clé NewsAPI depuis « Reconfigurer »."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            api_key = user_input[CONF_API_KEY].strip()
+            if (error := await _validate_key(self.hass, api_key)) is None:
+                return self.async_update_reload_and_abort(
+                    self._get_reconfigure_entry(), data_updates={CONF_API_KEY: api_key}
+                )
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="reconfigure",
             data_schema=DATA_SCHEMA,
             errors=errors,
             description_placeholders={"register_url": "https://newsapi.org/register"},
@@ -79,11 +112,20 @@ class StarshipTrackerOptionsFlow(OptionsFlow):
                     self.config_entry, data={**self.config_entry.data, CONF_API_KEY: api_key}
                 )
                 self.hass.config_entries.async_schedule_reload(self.config_entry.entry_id)
-                return self.async_create_entry(data={})
+                return self.async_create_entry(data={CONF_TRANSLATE: bool(user_input.get(CONF_TRANSLATE))})
 
+        translate = self.config_entry.options.get(
+            CONF_TRANSLATE, (self.hass.config.language or "").startswith("fr")
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_API_KEY, default=self.config_entry.data.get(CONF_API_KEY, "")): str,
+                vol.Optional(CONF_TRANSLATE, default=translate): bool,
+            }
+        )
         return self.async_show_form(
             step_id="init",
-            data_schema=DATA_SCHEMA,
+            data_schema=schema,
             errors=errors,
             description_placeholders={"register_url": "https://newsapi.org/register"},
         )

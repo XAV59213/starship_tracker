@@ -10,6 +10,7 @@ import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import CONF_API_KEY, DOMAIN, NEWS_API_URL, NEWS_LIMIT, NEWS_QUERY, SCAN_INTERVAL_NEWS
@@ -59,7 +60,8 @@ class StarshipNewsCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         try:
             return await async_fetch_news(self._session, self._api_key)
         except InvalidApiKey as err:
-            raise UpdateFailed("Clé NewsAPI invalide") from err
+            # Déclenche le flux de réauthentification (nouvelle clé NewsAPI)
+            raise ConfigEntryAuthFailed("Clé NewsAPI invalide") from err
         except (aiohttp.ClientError, TimeoutError) as err:
             raise UpdateFailed(f"Erreur réseau NewsAPI : {err}") from err
         except ValueError as err:

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import importlib.util
+
+import pytest
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -264,3 +266,42 @@ def test_video_infographic_timeline():
     assert d["mission_infographic"] == "https://content.spacex.com/cms-assets/traj.jpg"
     assert d["mission_countdown"] == [["00:50:00", "Poll"]]
     assert d["mission_timeline"] == [["00:00:00", "Liftoff"]]
+
+
+@pytest.mark.parametrize(
+    ("text", "iso", "has_time", "window"),
+    [
+        ("Launch on 5 March 2027 at 12:15 a.m. ET", "2027-03-05T05:15:00+00:00", True, None),
+        ("Targeting Sept. 3, 2027 at 12:00 p.m. UTC", "2027-09-03T12:00:00+00:00", True, None),
+        ("No earlier than December 1", "2026-12-01T00:00:00+00:00", False, None),
+        ("A 30-minute window only", None, False, 30),
+        ("January 2 at 13:00 p.m. CT and 9:00 p.m. XYZ", "2027-01-02T00:00:00+00:00", False, None),
+        ("November 1 at 1:00 p.m. PT", "2027-11-01T20:00:00+00:00", True, None),
+    ],
+)
+def test_prose_variants(text, iso, has_time, window):
+    p = parse_launch_prose(text, now=NOW)
+    assert (p.when.isoformat() if p.when else None) == iso
+    assert p.has_time is has_time
+    assert p.launch_window_minutes == window
+
+
+def test_prose_edge_cases():
+    assert parse_launch_prose("", now=NOW) is None
+    assert parse_launch_prose("nothing here", now=NOW) is None
+    assert parse_mission_page(None) is None
+    assert parse_mission_page({"paragraphs": ["  ", {"content": None}]}) is None
+    with pytest.raises(ValueError):
+        mission_date.ParsedLaunch(when=datetime(2026, 1, 1), has_time=False, launch_window_minutes=None)
+    p = mission_date.ParsedLaunch(when=None, has_time=False, launch_window_minutes=5)
+    assert p.launch_date is None and p.launch_time is None
+    assert mission_date.image_url({"url": "//cdn/x.png"}) == "https://cdn/x.png"
+    assert mission_date.image_url({"url": "ftp://x"}) is None
+    assert mission_date.image_url("x") is None
+    assert mission_date.webcast_video({"videoId": "a b"}) is None
+    assert mission_date.webcast_video({"videoId": "abc", "streamingVideoType": "other"}) is None
+    assert mission_date.timeline_entries({"timelineEntries": ["x", {"time": "1", "description": "d" * 300}]})[0][1].endswith("…")
+    d = extract_mission_details({"paragraphs": ["plain <b>text</b>"], "webcasts": ["https://y/v", {"url": "https://z"}],
+                                 "videoDesktop": {"url": "/v.mp4"}})
+    assert d["webcast_links"] == ["https://y/v", "https://z"]
+    assert d["mission_videos"][0]["type"] == "file"

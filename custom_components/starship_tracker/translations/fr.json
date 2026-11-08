@@ -6,6 +6,29 @@
         "description": "Saisissez votre clé NewsAPI gratuite, disponible sur {register_url}.",
         "data": {
           "api_key": "Clé NewsAPI"
+        },
+        "data_description": {
+          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Réauthentifier NewsAPI",
+        "description": "La clé NewsAPI a été refusée. Saisissez une nouvelle clé, disponible sur {register_url}.",
+        "data": {
+          "api_key": "Clé NewsAPI"
+        },
+        "data_description": {
+          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer Starship Tracker",
+        "description": "Saisissez une nouvelle clé NewsAPI, disponible sur {register_url}.",
+        "data": {
+          "api_key": "Clé NewsAPI"
+        },
+        "data_description": {
+          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship."
         }
       }
     },
@@ -15,7 +38,9 @@
       "unknown": "Erreur inattendue"
     },
     "abort": {
-      "already_configured": "Starship Tracker est déjà configuré"
+      "already_configured": "Starship Tracker est déjà configuré",
+      "reauth_successful": "Réauthentification réussie",
+      "reconfigure_successful": "Reconfiguration réussie"
     }
   },
   "entity": {
@@ -79,7 +104,12 @@
         "title": "Starship Tracker",
         "description": "Saisissez une nouvelle clé NewsAPI (disponible sur {register_url}). L'intégration est rechargée après l'enregistrement.",
         "data": {
-          "api_key": "Clé NewsAPI"
+          "api_key": "Clé NewsAPI",
+          "translate_fr": "Traduire le contenu SpaceX en français"
+        },
+        "data_description": {
+          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship.",
+          "translate_fr": "Titres, statut, description et chronologie en français (traduction gratuite sans clé, mise en cache ; texte original conservé en cas d'échec)."
         }
       }
     },
@@ -87,6 +117,11 @@
       "invalid_auth": "Clé API invalide",
       "cannot_connect": "Impossible de joindre NewsAPI",
       "unknown": "Erreur inattendue"
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Impossible d'actualiser les données SpaceX (spacex.com injoignable)."
     }
   }
 }

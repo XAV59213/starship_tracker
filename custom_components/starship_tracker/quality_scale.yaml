@@ -1,0 +1,82 @@
+# Integration Quality Scale — Starship Tracker (intégration personnalisée HACS)
+# Niveau visé / atteint : silver
+rules:
+  # ---------- Bronze ----------
+  action-setup:
+    status: exempt
+    comment: Aucune action de service enregistrée (seulement un bouton).
+  appropriate-polling: done  # 5 min live, 6 h flux complet, 30 min page mission / NewsAPI, 1 h compteurs
+  brands: done  # dossier brand/ (icon, logo, dark_*, @2x) — HA 2026.3+
+  common-modules: done  # coordinator.py, live_coordinator.py, stats_coordinator.py, mission_date.py
+  config-flow-test-coverage: done  # tests/test_config_flow.py : 100 %
+  config-flow: done  # data_description pour la clé NewsAPI
+  dependency-transparency:
+    status: exempt
+    comment: Aucune bibliothèque externe (aiohttp fourni par HA).
+  docs-actions:
+    status: exempt
+    comment: Pas d'action de service.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup:
+    status: exempt
+    comment: Les entités ne s'abonnent à aucun événement (CoordinatorEntity uniquement).
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done  # ConfigEntry[StarshipData]
+  test-before-configure: done  # la clé NewsAPI est testée dans le flux
+  test-before-setup: done  # async_config_entry_first_refresh → ConfigEntryNotReady
+  unique-config-entry: done  # unique_id = domaine, une seule entrée
+
+  # ---------- Silver ----------
+  action-exceptions: done  # bouton : HomeAssistantError traduite si spacex.com est injoignable
+  config-entry-unloading: done
+  docs-configuration-parameters: done  # options flow (clé NewsAPI) documenté
+  docs-installation-parameters: done
+  entity-unavailable: done  # CoordinatorEntity : indisponible si la mise à jour échoue
+  integration-owner: done  # @XAV59213
+  log-when-unavailable: done  # DataUpdateCoordinator : un seul log à la perte / au retour
+  parallel-updates: done  # sensor / binary_sensor : 0, button : 1
+  reauthentication-flow: done  # clé NewsAPI refusée → ConfigEntryAuthFailed → reauth_confirm
+  test-coverage: done  # ~96 % (pytest-homeassistant-custom-component)
+
+  # ---------- Gold ----------
+  devices: done  # un appareil service « Starship Tracker »
+  diagnostics: done  # clé NewsAPI masquée
+  discovery-update-info:
+    status: exempt
+    comment: Service cloud, pas de découverte réseau.
+  discovery:
+    status: exempt
+    comment: Service cloud, pas de découverte réseau.
+  docs-data-update: done  # README « Sources » / intervalles
+  docs-examples: done  # automatisations d'exemple + carte Lovelace
+  docs-known-limitations: done  # README « Limites »
+  docs-supported-devices:
+    status: exempt
+    comment: Aucun appareil physique.
+  docs-supported-functions: done
+  docs-troubleshooting: todo
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: Un seul appareil service.
+  entity-category: done  # bouton / page véhicule en diagnostic
+  entity-device-class: done  # timestamp pour le compte à rebours
+  entity-disabled-by-default: todo
+  entity-translations: done
+  exception-translations: todo  # seulement refresh_failed traduite ; messages UpdateFailed non traduits
+  icon-translations: todo  # icônes encore définies via _attr_icon
+  reconfiguration-flow: done
+  repair-issues:
+    status: exempt
+    comment: Aucun problème réparable par l'utilisateur (la clé passe par le reauth).
+  stale-devices:
+    status: exempt
+    comment: Un seul appareil service.
+
+  # ---------- Platinum ----------
+  async-dependency: done  # aiohttp uniquement
+  inject-websession: done  # async_get_clientsession(hass)
+  strict-typing: todo  # pas encore de py.typed / mypy --strict
