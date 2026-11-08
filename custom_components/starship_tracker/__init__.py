@@ -11,10 +11,11 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 
-from .const import CONF_TRANSLATE, DOMAIN
+from .const import CONF_TRANSLATE, CONF_YOUTUBE_FR, CONF_YOUTUBE_EN, CONF_YOUTUBE_KEYWORD, CONF_YOUTUBE_FR2, CONF_YOUTUBE_STARBASE_FR, CONF_YOUTUBE_STARBASE_FILTER, DOMAIN
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator
 from .stats_coordinator import SpaceXStatsCoordinator
+from .youtube_coordinator import YouTubeCoordinator
 
 CARD_FILE = "starship-tracker-card.js"
 CARD_URL = f"/{DOMAIN}/{CARD_FILE}"
@@ -29,6 +30,7 @@ class StarshipData:
     news: StarshipNewsCoordinator
     live: StarshipLiveCoordinator
     stats: SpaceXStatsCoordinator
+    youtube: dict[str, YouTubeCoordinator]
 
 
 type StarshipConfigEntry = ConfigEntry[StarshipData]
@@ -58,7 +60,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> 
     # Compteurs SpaceX optionnels : un échec ne bloque pas l'intégration.
     stats = SpaceXStatsCoordinator(hass)
     await stats.async_refresh()
-    entry.runtime_data = StarshipData(news=news, live=live, stats=stats)
+    youtube: dict[str, YouTubeCoordinator] = {}
+    for language, key in (("fr", CONF_YOUTUBE_FR), ("en", CONF_YOUTUBE_EN)):
+        if channel := entry.options.get(key, entry.data.get(key, "")):
+            coordinator = YouTubeCoordinator(
+                hass, entry, language, channel,
+                entry.options.get(CONF_YOUTUBE_KEYWORD, entry.data.get(CONF_YOUTUBE_KEYWORD, "starship")),
+            )
+            # YouTube outages must not prevent SpaceX sensors from loading.
+            await coordinator.async_refresh()
+            youtube[language] = coordinator
+    if entry.options.get(CONF_YOUTUBE_STARBASE_FR, entry.data.get(CONF_YOUTUBE_STARBASE_FR, False)):
+        if channel := entry.options.get(CONF_YOUTUBE_FR2, entry.data.get(CONF_YOUTUBE_FR2, "")):
+            keyword = ""
+            if entry.options.get(CONF_YOUTUBE_STARBASE_FILTER, entry.data.get(CONF_YOUTUBE_STARBASE_FILTER, False)):
+                keyword = entry.options.get(CONF_YOUTUBE_KEYWORD, entry.data.get(CONF_YOUTUBE_KEYWORD, "starship"))
+            coordinator = YouTubeCoordinator(hass, entry, "fr", channel, keyword, source="fr_starbase")
+            await coordinator.async_refresh()
+            youtube["fr_starbase"] = coordinator
+    entry.runtime_data = StarshipData(news=news, live=live, stats=stats, youtube=youtube)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

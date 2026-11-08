@@ -1,0 +1,230 @@
+"""Optional, keyless YouTube channel feeds and persistent video notifications."""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import logging
+import re
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
+from typing import Any
+from urllib.parse import urlparse
+
+import aiohttp
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+CHANNEL_ID = re.compile(r"UC[\w-]{22}", re.ASCII)
+VIDEO_ID = re.compile(r"[\w-]{11}", re.ASCII)
+MAX_RESPONSE = 1024 * 1024
+NS = {
+    "a": "http://www.w3.org/2005/Atom",
+    "yt": "http://www.youtube.com/xml/schemas/2015",
+}
+
+
+def parse_channel_id(page: str) -> str:
+    """Extract channel metadata, never run JavaScript from a channel page."""
+    for pattern in (
+        r'"externalId"\s*:\s*"(UC[\w-]{22})"',
+        r"https://www\.youtube\.com/channel/(UC[\w-]{22})",
+        r'"channelId"\s*:\s*"(UC[\w-]{22})"',
+    ):
+        if match := re.search(pattern, page, re.ASCII):
+            return match.group(1)
+    raise ValueError("No YouTube channel ID found")
+
+
+async def _read_text(
+    response: aiohttp.ClientResponse, limit: int = MAX_RESPONSE
+) -> str:
+    """Bound memory usage for public HTML and XML."""
+    data = bytearray()
+    async for chunk in response.content.iter_chunked(16384):
+        data.extend(chunk)
+        if len(data) > limit:
+            raise ValueError("YouTube response too large")
+    return data.decode("utf-8-sig")
+
+
+async def async_resolve_channel(session: aiohttp.ClientSession, value: str) -> str:
+    """Accept an ID, handle or public YouTube channel URL; restrict fetch hosts."""
+    value = value.strip()
+    if CHANNEL_ID.fullmatch(value):
+        return value
+    if value.startswith("@"):
+        path = "/" + value
+    else:
+        parsed = urlparse(value)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname
+            not in {"youtube.com", "www.youtube.com", "m.youtube.com"}
+            or parsed.username
+            or parsed.password
+            or parsed.port not in (None, 443)
+        ):
+            raise ValueError("Use a YouTube channel URL, @handle or UC channel ID")
+        path = parsed.path.rstrip("/")
+        # URLs copied from a channel's Videos/Live tab are accepted too.
+        path = re.sub(r"/(videos|streams|shorts|featured|about)$", "", path)
+    if path.startswith("/channel/") and CHANNEL_ID.fullmatch(path[9:]):
+        return path[9:]
+    if not re.fullmatch(r"/(?:@[\w.-]{1,100}|(?:c|user)/[\w.-]{1,100})", path):
+        raise ValueError("Not a YouTube channel")
+    async with asyncio.timeout(20):
+        async with session.get(
+            "https://www.youtube.com" + path, allow_redirects=False
+        ) as response:
+            if response.status != 200:
+                raise ValueError("YouTube channel page unavailable")
+            return parse_channel_id(await _read_text(response, 4 * MAX_RESPONSE))
+
+
+def parse_feed(xml: str, keyword: str = "starship") -> list[dict[str, str]]:
+    """Read bounded Atom XML, rejecting DTD/entity declarations before parsing.
+
+    ElementTree never fetches external entities. Rejecting declarations also
+    prevents internal entity expansion; only UTF-8 text is accepted by the fetcher.
+    """
+    if (
+        len(xml) > MAX_RESPONSE
+        or "<!DOCTYPE" in xml.upper()
+        or "<!ENTITY" in xml.upper()
+    ):
+        raise ValueError("Unsafe YouTube feed")
+    root = ET.fromstring(xml)
+    if root.tag != "{http://www.w3.org/2005/Atom}feed":
+        raise ValueError("Not an Atom feed")
+    videos = []
+    for entry in root.findall("a:entry", NS):
+        video_id = entry.findtext("yt:videoId", "", NS)
+        title = entry.findtext("a:title", "", NS).strip()
+        published = entry.findtext("a:published", "", NS)
+        if (
+            not VIDEO_ID.fullmatch(video_id)
+            or not title
+            or keyword.casefold() not in title.casefold()
+        ):
+            continue
+        try:
+            dt = datetime.fromisoformat(published)
+            if dt.tzinfo is None:
+                continue
+        except ValueError:
+            continue
+        videos.append(
+            {
+                "video_id": video_id,
+                "title": title,
+                "url": f"https://www.youtube.com/watch?v={video_id}",
+                "published": dt.isoformat(),
+                "thumbnail": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+            }
+        )
+    return sorted(
+        videos,
+        key=lambda video: datetime.fromisoformat(video["published"]),
+        reverse=True,
+    )
+
+
+async def async_fetch_feed(
+    session: aiohttp.ClientSession, channel: str, keyword: str
+) -> list[dict[str, str]]:
+    """Fetch the channel's recent public uploads (YouTube RSS has a limited history)."""
+    async with asyncio.timeout(20):
+        async with session.get(
+            "https://www.youtube.com/feeds/videos.xml", params={"channel_id": channel}
+        ) as response:
+            response.raise_for_status()
+            return parse_feed(await _read_text(response), keyword)
+
+
+class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
+    """Independent coordinator per language: one broken channel cannot hide another."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        language: str,
+        channel: str,
+        keyword: str,
+        *,
+        source: str | None = None,
+    ) -> None:
+        source = source or language
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name=f"{DOMAIN}_youtube_{source}",
+            update_interval=timedelta(minutes=10),
+        )
+        self.language = language
+        self.channel = channel
+        self.keyword = keyword
+        scope = hashlib.sha256(f"{channel}:{keyword.casefold()}".encode()).hexdigest()[
+            :16
+        ]
+        self._store: Store[dict[str, Any]] = Store(
+            hass, 1, f"{DOMAIN}.{entry.entry_id}.youtube.{source}.{scope}"
+        )
+        self._loaded = False
+        self._initialized = False
+        self._seen: list[str] = []
+        self._latest: dict[str, str] | None = None
+
+    async def _async_update_data(self) -> dict[str, str] | None:
+        if not self._loaded:
+            saved = await self._store.async_load() or {}
+            self._initialized = bool(saved.get("initialized", False))
+            self._seen = saved.get("seen", [])
+            self._latest = saved.get("latest")
+            self._loaded = True
+        try:
+            videos = await async_fetch_feed(
+                async_get_clientsession(self.hass), self.channel, self.keyword
+            )
+        except (aiohttp.ClientError, TimeoutError, ValueError, ET.ParseError) as err:
+            raise UpdateFailed(f"YouTube {self.language}: {err}") from err
+        new = [
+            video for video in reversed(videos) if video["video_id"] not in self._seen
+        ]
+        latest = self._latest
+        if videos and (
+            not latest
+            or datetime.fromisoformat(videos[0]["published"])
+            >= datetime.fromisoformat(latest["published"])
+        ):
+            latest = {**videos[0], "channel": self.channel}
+        seen = list(
+            dict.fromkeys([*self._seen, *(video["video_id"] for video in new)])
+        )[-200:]
+        if not self._initialized or seen != self._seen or latest != self._latest:
+            # Persist before firing: a restart must never replay an already notified video.
+            await self._store.async_save(
+                {"initialized": True, "seen": seen, "latest": latest}
+            )
+        if self._initialized:
+            for video in new:
+                self.hass.bus.async_fire(
+                    f"{DOMAIN}_youtube_video",
+                    {
+                        "language": self.language,
+                        "channel": self.channel,
+                        **{key: video[key] for key in ("title", "url", "published")},
+                    },
+                )
+        self._initialized = True
+        self._seen = seen
+        self._latest = latest
+        return latest

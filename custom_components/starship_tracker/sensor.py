@@ -17,6 +17,7 @@ from .const import DOMAIN, LIVE_URL
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator, launch_datetime
 from .stats_coordinator import SpaceXStatsCoordinator
+from .youtube_coordinator import YouTubeCoordinator
 
 
 def _device_info(entry: StarshipConfigEntry) -> DeviceInfo:
@@ -42,6 +43,8 @@ async def async_setup_entry(
     async_add_entities(
         [
             StarshipLiveSensor(entry),
+            *(YouTubeSensor(coordinator, entry, language)
+              for language, coordinator in entry.runtime_data.youtube.items()),
             StarshipNewsSensor(coordinator, entry),
             StarshipNextMissionSensor(entry.runtime_data.live, entry),
             StarshipCountdownSensor(entry.runtime_data.live, entry),
@@ -304,3 +307,27 @@ class SpaceXStatSensor(CoordinatorEntity[SpaceXStatsCoordinator], SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {"source": "https://www.spacex.com/launches"}
+
+
+class YouTubeSensor(CoordinatorEntity[YouTubeCoordinator], SensorEntity):
+    """Latest matching public upload for the configured language/channel."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:youtube"
+
+    def __init__(self, coordinator: YouTubeCoordinator, entry: StarshipConfigEntry, language: str) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_youtube_{language}"
+        self._attr_translation_key = f"youtube_{language}"
+        # Initial suggestion only; the entity registry preserves user renames.
+        self.entity_id = f"sensor.starship_tracker_youtube_{language}"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> str | None:
+        """Respect Home Assistant's 255-character state limit."""
+        return self.coordinator.data["title"][:255] if self.coordinator.data else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"channel": self.coordinator.channel, **(self.coordinator.data or {})}

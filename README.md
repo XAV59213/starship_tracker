@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.15.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.16.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -109,6 +109,57 @@ automation:
 
 Variante sans événement : déclencher sur l'état du binary_sensor (`trigger: state`, `to: "on"`).
 
+## YouTube FR / EN (à partir de 1.16.0)
+
+Dans **Configurer**, les chaînes proposées par défaut sont **[@UFOTINIK](https://www.youtube.com/@UFOTINIK)** pour le français et **[@NASASpaceflight](https://www.youtube.com/@NASASpaceflight)** pour l’anglais. Enregistrez pour les activer ; vous pouvez les changer ou les vider. Le même filtre `starship` s’applique aux deux chaînes FR et EN et reste activé par défaut (NSF publie aussi sur d’autres sujets). Les Shorts présents dans RSS sont inclus s’ils correspondent au filtre.
+
+Renseignez une chaîne française (`youtube_channel_fr`), une chaîne anglaise/américaine (`youtube_channel_en`), ou les deux. Les mêmes champs facultatifs sont proposés à l'installation.
+
+- Formats : `https://www.youtube.com/@nom`, `@nom`, `https://www.youtube.com/channel/UC…` ou ID `UC…`. L'URL / le pseudo est résolu une fois en ID lors de l'enregistrement. Si YouTube bloque la résolution, utilisez directement l'ID UC de la chaîne.
+- `youtube_keyword` : filtre sur le **titre**, sans distinction de casse, `starship` par défaut. Vide = toutes les vidéos. Videz une chaîne pour la désactiver. FR et EN désignent vos choix de chaînes : aucune détection ni traduction automatique de la langue des vidéos.
+- Pas de connexion YouTube, pas de clé API. Flux public `https://www.youtube.com/feeds/videos.xml?channel_id=ID`, toutes les **10 min**. Seules les publications récentes présentes dans le flux sont accessibles : une vidéo déjà sortie du flux pendant une longue interruption peut être manquée. Ce n'est pas une détection fiable du début d'un direct ; une première peut apparaître avant sa diffusion.
+- Entités créées uniquement pour les chaînes configurées : `sensor.starship_tracker_youtube_fr` / `sensor.starship_tracker_youtube_en`. État = dernier titre correspondant (255 caractères max), attributs `title` (complet), `url`, `published` (ISO 8601 avec fuseau), `thumbnail`, `channel` (ID UC), `video_id`. Sans correspondance : état inconnu. En cas d'échec réseau : seule l'entité de la chaîne concernée devient indisponible.
+- Carte : bloc **📺 Vidéos YouTube**, liens FR / EN ; option `show_youtube: true` par défaut. La dernière vidéo de chaque langue choisie apparaît aussi en tête du carrousel (miniature, titre original, date, badge FR/EN). Un clic ouvre YouTube, pas les détails de mission. `youtube_carousel_lang: auto` sélectionne FR si l’interface HA est française, sinon EN ; valeurs possibles `auto`, `fr`, `en`, `both`. `lang: fr` dans la carte peut forcer la langue de son interface. `carousel_count` limite le total des vignettes, vidéos comprises ; le compteur les inclut. `show_youtube: false` masque les liens et les vignettes ; `show_carousel: false` masque seulement le carrousel. Les champs `youtube_fr` / `youtube_en` permettent de choisir une entité renommée si nécessaire. Le titre original de la vidéo est conservé.
+- Événement `starship_tracker_youtube_video` : `language` (`fr` / `en`), `title`, `url`, `channel`, `published`. La première lecture établit un historique silencieux ; les identifiants vus sont conservés dans le stockage Home Assistant, donc aucun doublon au redémarrage. Un changement de chaîne ou de filtre crée un nouvel historique silencieux.
+
+### Suivi du projet StarBase FR (facultatif)
+
+Une deuxième chaîne française est disponible sans remplacer UFOTINIK : **@StarBaseFR**, pour le suivi du projet Starship / Starbase.
+
+- Activez **« Activer le suivi du projet StarBase FR »** (`youtube_starbase_fr`, **désactivé par défaut**).
+- `youtube_channel_fr2` propose `@StarBaseFR` ; vous pouvez la changer (URL, @pseudo ou ID UC) ou vider le champ. L'ID est résolu uniquement à l'activation ; aucune requête RSS n'est faite tant que l'option reste désactivée. Désactiver l'option conserve l'ID déjà enregistré.
+- **« Appliquer aussi le filtre de titre à StarBase FR »** (`youtube_starbase_filter`) est **désactivé par défaut** : toutes ses publications RSS sont suivies, même si le titre ne contient pas « Starship ». Si activé, le même `youtube_keyword` que les chaînes principales est utilisé. UFOTINIK et NASASpaceflight gardent leur filtre `starship` par défaut.
+- Entité : `sensor.starship_tracker_youtube_fr_starbase`, même état et attributs que les autres capteurs. Événement identique avec `language: fr` et son ID dans `channel` : l'automatisation FR ci-dessous couvre les deux chaînes. Pour les distinguer, filtrez aussi `event_data.channel`.
+- Carte : lien **FR · StarBase FR** et vignette avec badge **FR**. En mode automatique elle apparaît si HA est en français ; `youtube_carousel_lang: both` affiche les trois sources configurées. Première lecture silencieuse et historique persistant indépendant.
+
+### Notification par langue
+
+Copiez cet exemple dans l'éditeur YAML d'une automatisation et remplacez le service de notification. Pour les anglophones, dupliquez-le en remplaçant `language: fr` par `language: en` (et le titre). Aucun message n'est envoyé sans votre automatisation.
+
+```yaml
+# Configuration > Automatisations > Créer > Modifier en YAML.
+# FR: remplacer le service notify par celui du téléphone. EN: replace notify service.
+# Pour l'anglais / For English: change language: fr to language: en.
+alias: "Starship - vidéo YouTube FR"
+triggers:
+  - trigger: event
+    event_type: starship_tracker_youtube_video
+    event_data:
+      language: fr
+actions:
+  - action: notify.mobile_app_mon_telephone
+    data:
+      title: "📺 Starship — YouTube FR"
+      message: "{{ trigger.event.data.title }}"
+      data:
+        url: "{{ trigger.event.data.url }}"
+        clickAction: "{{ trigger.event.data.url }}"
+mode: queued
+max: 20
+```
+
+Fichier prêt à copier : [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml).
+
 ## Diagnostics & robustesse
 
 - *Paramètres → Appareils et services → Starship Tracker → ⋮ → Télécharger les diagnostics* : état du live et des actualités, clé NewsAPI masquée (`**REDACTED**`).
@@ -129,6 +180,8 @@ Integration icons and logos live in `custom_components/starship_tracker/brand/` 
 used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
+
+**1.16.0** : chaînes YouTube FR et EN facultatives (URL, @pseudo ou ID UC…), filtre de titre `starship` personnalisable, flux RSS sans clé toutes les 10 minutes, capteurs, liens et vignettes YouTube dans le carrousel (langue automatique ou `youtube_carousel_lang: auto|fr|en|both`, `show_youtube: true`). Événement `starship_tracker_youtube_video` pour les nouvelles vidéos seulement, historique persistant sans réalerte au redémarrage. Pas de notification lors de la première lecture ou après changement de chaîne/filtre.
 
 **1.15.1** : exemple YAML corrigé (`carousel_count: 25` au lieu de 10). Si votre carte conserve `carousel_count: 10`, passez-le à 25 pour voir les 21 missions ; une mise à jour ne remplace pas votre configuration. Carrousel mobile : flèches précises (une vignette par clic), masquées aux extrémités ; compteur de position ; position conservée lors des mises à jour.
 
@@ -246,8 +299,21 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.15.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.16.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
+### YouTube channels (1.16.0)
+
+Optional **StarBase FR project updates**: enable `youtube_starbase_fr` (off by default), with `youtube_channel_fr2` suggested as `@StarBaseFR`. Its separate sensor is `sensor.starship_tracker_youtube_fr_starbase`; events use `language: fr` and its own `channel` ID. It appears alongside the main FR channel in French carousel mode (all three sources in `both` mode). No lookup/polling while disabled; disabling preserves the resolved ID. Emptying the field also disables the feed. Its `youtube_starbase_filter` toggle is **off by default**, so all recent channel uploads are included; enable it to apply the common keyword. The primary UFOTINIK / NASASpaceflight channels still default to the `starship` filter. Baseline/persistent deduplication is independent.
+
+In **Configure**, suggested defaults are **@UFOTINIK** (FR) and **@NASASpaceflight** (EN); save to enable them, change or clear either channel. The default `starship` title filter excludes unrelated NSF uploads. Shorts in RSS are included if they match. Optionally set `youtube_channel_fr` and/or `youtube_channel_en` to a channel URL, @handle or UC… ID. Handles/URLs are resolved once and stored as channel IDs. If resolution is blocked, enter the UC… ID directly. Leave a channel empty to disable it. `youtube_keyword` filters titles case-insensitively (default `starship`; empty = all uploads). FR/EN label your selected channels; video language is not detected or translated.
+
+Public RSS is polled every 10 minutes without a YouTube API key/account. Sensors `sensor.starship_tracker_youtube_fr` and `_youtube_en` expose the latest matching title and `title`, `url`, `published`, `thumbnail`, `channel`, `video_id` attributes. Only configured channels create sensors. The bundled card shows FR/EN links by default (`show_youtube: true`; optional entity overrides `youtube_fr` / `youtube_en`). Latest-video tiles come first in the carousel with thumbnail, original title, date and FR/EN badge; clicking opens YouTube, not mission details. `youtube_carousel_lang: auto` follows the HA/card UI language (French → FR, otherwise EN); overrides: `fr`, `en`, `both`. Optional card `lang: fr` forces French UI. The position counter and `carousel_count` include video tiles. `show_youtube: false` hides both tiles and links; `show_carousel: false` hides the carousel only. A failed channel becomes unavailable without blocking SpaceX or the other language.
+
+`starship_tracker_youtube_video` carries `language`, `title`, `url`, `channel`, `published`. No alerts on the initial baseline or channel/filter changes; seen IDs persist across restarts. RSS only covers recent uploads, so long outages may miss videos. Premiere listings may precede playback; live-start detection is not guaranteed.
+
+Copy [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml) into an automation's YAML editor, replace the notification service and use `event_data: {language: en}` for English notifications (`fr` for French). Notifications require your own automation.
+
+- **1.16.0** — Optional French/English YouTube channels, keyless RSS, persistent new-video events, sensors, card links and language-aware thumbnail carousel tiles.
 - **1.15.1** — Fixed YAML example (`carousel_count: 25`, previously 10). Existing cards with `carousel_count: 10` must change it to 25 to show all 21 missions; updates preserve user configuration. Mobile carousel: exact one-tile arrow navigation, hidden arrows at the ends, position counter and scroll position preserved across updates.
 - **1.15.0** — French translation of SpaceX content (option, on by default when HA is in French): statuses, deterministic titles, built-in timeline dictionary, free keyless machine translation of the description (Google gtx, MyMemory fallback) with persistent cache and original-text fallback; « Texte original » toggle in the card. Free services are best effort. Quality Scale **Silver** (`quality_scale.yaml`): NewsAPI reauth, reconfigure flow, `PARALLEL_UPDATES`, translated button exception, field descriptions, HA tests (config flow 100 %, ~96 % overall) + Tests workflow; HACS validation without ignores, repo description/topics.
 - **1.14.0** — all Starship flights (21, SN5 → Flight 15) in the carousel and list (`carousel_count` default 25); fixed-size tiles (no more empty tile on mobile); Details panel: video (YouTube embed or ▶ button to the X webcast), flight-plan infographic, collapsible monospace COUNTDOWN and FLIGHT TIMELINE. New next-mission attributes `mission_videos`, `mission_infographic(_mobile)`, `mission_countdown`, `mission_timeline`; past flights load their mission page on demand in the card (6 h cache).

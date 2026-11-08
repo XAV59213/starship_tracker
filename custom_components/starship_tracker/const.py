@@ -35,3 +35,16 @@ SPACEX_STATS_URL: Final = "https://content.spacex.com/api/spacex-website/launche
 SCAN_INTERVAL_STATS: Final = timedelta(hours=1)
 
 CONF_TRANSLATE: Final = "translate_fr"
+
+# YouTube is optional and keyless. An empty keyword includes all public uploads.
+CONF_YOUTUBE_FR: Final = "youtube_channel_fr"
+CONF_YOUTUBE_EN: Final = "youtube_channel_en"
+CONF_YOUTUBE_KEYWORD: Final = "youtube_keyword"
+
+DEFAULT_YOUTUBE_FR: Final = "@UFOTINIK"
+DEFAULT_YOUTUBE_EN: Final = "@NASASpaceflight"
+
+CONF_YOUTUBE_FR2: Final = "youtube_channel_fr2"
+CONF_YOUTUBE_STARBASE_FR: Final = "youtube_starbase_fr"
+CONF_YOUTUBE_STARBASE_FILTER: Final = "youtube_starbase_filter"
+DEFAULT_YOUTUBE_FR2: Final = "@StarBaseFR"

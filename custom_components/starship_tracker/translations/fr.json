@@ -5,10 +5,22 @@
         "title": "Starship Tracker",
         "description": "Saisissez votre clé NewsAPI gratuite, disponible sur {register_url}.",
         "data": {
-          "api_key": "Clé NewsAPI"
+          "api_key": "Clé NewsAPI",
+          "youtube_channel_fr": "Chaîne YouTube française (facultatif)",
+          "youtube_channel_en": "Chaîne YouTube anglaise / américaine (facultatif)",
+          "youtube_keyword": "Mot-clé YouTube",
+          "youtube_starbase_fr": "Activer le suivi du projet StarBase FR",
+          "youtube_channel_fr2": "Deuxième chaîne française (StarBase FR)",
+          "youtube_starbase_filter": "Appliquer aussi le filtre de titre à StarBase FR"
         },
         "data_description": {
-          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship."
+          "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship.",
+          "youtube_channel_fr": "URL de chaîne, @pseudo ou ID UC… ; suggestion : @UFOTINIK. Vide pour désactiver.",
+          "youtube_channel_en": "URL de chaîne, @pseudo ou ID UC… ; suggestion : @NASASpaceflight. Vide pour désactiver.",
+          "youtube_keyword": "Même filtre sur les titres FR principal et EN ; starship par défaut, vide pour tous. StarBase FR utilise son option de filtre séparée.",
+          "youtube_starbase_fr": "Facultatif, désactivé par défaut. Les vidéos de suivi du projet sont classées FR.",
+          "youtube_channel_fr2": "URL, @pseudo ou ID UC… ; suggestion : @StarBaseFR. Résolue uniquement si le suivi est activé.",
+          "youtube_starbase_filter": "Désactivé par défaut : toutes les vidéos de cette chaîne sont incluses, même sans Starship dans le titre."
         }
       },
       "reauth_confirm": {
@@ -35,7 +47,9 @@
     "error": {
       "invalid_auth": "Clé API invalide",
       "cannot_connect": "Impossible de joindre NewsAPI",
-      "unknown": "Erreur inattendue"
+      "unknown": "Erreur inattendue",
+      "invalid_youtube_channel": "Chaîne YouTube invalide ou introuvable. Essayez son ID UC….",
+      "youtube_cannot_connect": "YouTube est injoignable. Réessayez ou utilisez un ID UC…."
     },
     "abort": {
       "already_configured": "Starship Tracker est déjà configuré",
@@ -90,6 +104,15 @@
       },
       "total_reflights": {
         "name": "SpaceX réutilisations totales"
+      },
+      "youtube_fr": {
+        "name": "YouTube FR"
+      },
+      "youtube_en": {
+        "name": "YouTube EN"
+      },
+      "youtube_fr_starbase": {
+        "name": "YouTube StarBase FR"
       }
     },
     "button": {
@@ -105,18 +128,32 @@
         "description": "Saisissez une nouvelle clé NewsAPI (disponible sur {register_url}). L'intégration est rechargée après l'enregistrement.",
         "data": {
           "api_key": "Clé NewsAPI",
-          "translate_fr": "Traduire le contenu SpaceX en français"
+          "translate_fr": "Traduire le contenu SpaceX en français",
+          "youtube_channel_fr": "Chaîne YouTube française (facultatif)",
+          "youtube_channel_en": "Chaîne YouTube anglaise / américaine (facultatif)",
+          "youtube_keyword": "Mot-clé YouTube",
+          "youtube_starbase_fr": "Activer le suivi du projet StarBase FR",
+          "youtube_channel_fr2": "Deuxième chaîne française (StarBase FR)",
+          "youtube_starbase_filter": "Appliquer aussi le filtre de titre à StarBase FR"
         },
         "data_description": {
           "api_key": "Clé gratuite newsapi.org, utilisée uniquement pour le capteur d'actualités Starship.",
-          "translate_fr": "Titres, statut, description et chronologie en français (traduction gratuite sans clé, mise en cache ; texte original conservé en cas d'échec)."
+          "translate_fr": "Titres, statut, description et chronologie en français (traduction gratuite sans clé, mise en cache ; texte original conservé en cas d'échec).",
+          "youtube_channel_fr": "URL de chaîne, @pseudo ou ID UC… ; suggestion : @UFOTINIK. Vide pour désactiver.",
+          "youtube_channel_en": "URL de chaîne, @pseudo ou ID UC… ; suggestion : @NASASpaceflight. Vide pour désactiver.",
+          "youtube_keyword": "Même filtre sur les titres FR principal et EN ; starship par défaut, vide pour tous. StarBase FR utilise son option de filtre séparée.",
+          "youtube_starbase_fr": "Facultatif, désactivé par défaut. Les vidéos de suivi du projet sont classées FR.",
+          "youtube_channel_fr2": "URL, @pseudo ou ID UC… ; suggestion : @StarBaseFR. Résolue uniquement si le suivi est activé.",
+          "youtube_starbase_filter": "Désactivé par défaut : toutes les vidéos de cette chaîne sont incluses, même sans Starship dans le titre."
         }
       }
     },
     "error": {
       "invalid_auth": "Clé API invalide",
       "cannot_connect": "Impossible de joindre NewsAPI",
-      "unknown": "Erreur inattendue"
+      "unknown": "Erreur inattendue",
+      "invalid_youtube_channel": "Chaîne YouTube invalide ou introuvable. Essayez son ID UC….",
+      "youtube_cannot_connect": "YouTube est injoignable. Réessayez ou utilisez un ID UC…."
     }
   },
   "exceptions": {
