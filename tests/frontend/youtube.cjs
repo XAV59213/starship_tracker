@@ -106,3 +106,19 @@ assert.equal(youtubeCount(), 2);
 card.setConfig({show_carousel: false});
 assert.equal(card.shadowRoot.track, null);
 console.log('PASS: carousel auto/fr/en/both, native video links, thumbnails, total limit, navigation counter and hidden toggle');
+
+
+// Optional StarBase FR is another French source, without replacing UFOTINIK.
+const starbase = video('Projet hebdomadaire', 'https://www.youtube.com/watch?v=ccccccccccc');
+card.setConfig({});
+card.hass = {language: 'fr', states: {...allStates, 'sensor.starship_tracker_youtube_fr_starbase': starbase}};
+assert.equal(youtubeCount(), 2);
+assert.equal(tiles().length, 23);
+assert.match(card.shadowRoot.innerHTML, /FR · StarBase FR/);
+card.hass = {language: 'en', states: {...allStates, 'sensor.starship_tracker_youtube_fr_starbase': starbase}};
+assert.equal(youtubeCount(), 1);
+assert.doesNotMatch(card.shadowRoot.innerHTML, /data-youtube="fr"/);
+card.setConfig({youtube_carousel_lang: 'both'});
+assert.equal(youtubeCount(), 3);
+assert.equal(tiles().length, 24);
+console.log('PASS: optional StarBase FR source, FR auto selection and three-channel both mode');

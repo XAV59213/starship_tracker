@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResu
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_API_KEY, CONF_TRANSLATE, CONF_YOUTUBE_FR, CONF_YOUTUBE_EN, CONF_YOUTUBE_KEYWORD, DEFAULT_YOUTUBE_FR, DEFAULT_YOUTUBE_EN, DOMAIN
+from .const import CONF_API_KEY, CONF_TRANSLATE, CONF_YOUTUBE_FR, CONF_YOUTUBE_EN, CONF_YOUTUBE_KEYWORD, DEFAULT_YOUTUBE_FR, DEFAULT_YOUTUBE_EN, CONF_YOUTUBE_FR2, CONF_YOUTUBE_STARBASE_FR, CONF_YOUTUBE_STARBASE_FILTER, DEFAULT_YOUTUBE_FR2, DOMAIN
 from .coordinator import InvalidApiKey, async_fetch_news
 from .youtube_coordinator import async_resolve_channel
 
@@ -20,13 +20,18 @@ DATA_SCHEMA = KEY_SCHEMA.extend({
     vol.Optional(CONF_YOUTUBE_FR, description={"suggested_value": DEFAULT_YOUTUBE_FR}): str,
     vol.Optional(CONF_YOUTUBE_EN, description={"suggested_value": DEFAULT_YOUTUBE_EN}): str,
     vol.Optional(CONF_YOUTUBE_KEYWORD, description={"suggested_value": "starship"}): str,
+    vol.Optional(CONF_YOUTUBE_STARBASE_FR, default=False): bool,
+    vol.Optional(CONF_YOUTUBE_FR2, description={"suggested_value": DEFAULT_YOUTUBE_FR2}): str,
+    vol.Optional(CONF_YOUTUBE_STARBASE_FILTER, default=False): bool,
 })
 
 
-async def _youtube_options(hass: HomeAssistant, user_input: dict[str, Any], errors: dict[str, str]) -> dict[str, str]:
+async def _youtube_options(hass: HomeAssistant, user_input: dict[str, Any], errors: dict[str, str]) -> dict[str, Any]:
     """Resolve once when saving; only store IDs, never fetch arbitrary URLs."""
-    result: dict[str, str] = {}
-    for key in (CONF_YOUTUBE_FR, CONF_YOUTUBE_EN):
+    result: dict[str, Any] = {}
+    for key in (CONF_YOUTUBE_FR, CONF_YOUTUBE_EN, CONF_YOUTUBE_FR2):
+        if key == CONF_YOUTUBE_FR2 and not user_input.get(CONF_YOUTUBE_STARBASE_FR, False):
+            continue
         if key not in user_input:
             continue
         value = user_input[key].strip()
@@ -41,6 +46,9 @@ async def _youtube_options(hass: HomeAssistant, user_input: dict[str, Any], erro
             errors[key] = "invalid_youtube_channel"
     if CONF_YOUTUBE_KEYWORD in user_input:
         result[CONF_YOUTUBE_KEYWORD] = user_input[CONF_YOUTUBE_KEYWORD].strip()
+    for key in (CONF_YOUTUBE_STARBASE_FR, CONF_YOUTUBE_STARBASE_FILTER):
+        if key in user_input:
+            result[key] = bool(user_input[key])
     return result
 
 
@@ -149,8 +157,12 @@ class StarshipTrackerOptionsFlow(OptionsFlow):
                 vol.Required(CONF_API_KEY, default=self.config_entry.data.get(CONF_API_KEY, "")): str,
                 vol.Optional(CONF_TRANSLATE, default=translate): bool,
                 **{
+                    vol.Optional(key, default=self.config_entry.options.get(key, self.config_entry.data.get(key, False))): bool
+                    for key in (CONF_YOUTUBE_STARBASE_FR, CONF_YOUTUBE_STARBASE_FILTER)
+                },
+                **{
                     vol.Optional(key, description={"suggested_value": self.config_entry.options.get(key, self.config_entry.data.get(key, default))}): str
-                    for key, default in ((CONF_YOUTUBE_FR, DEFAULT_YOUTUBE_FR), (CONF_YOUTUBE_EN, DEFAULT_YOUTUBE_EN), (CONF_YOUTUBE_KEYWORD, "starship"))
+                    for key, default in ((CONF_YOUTUBE_FR, DEFAULT_YOUTUBE_FR), (CONF_YOUTUBE_EN, DEFAULT_YOUTUBE_EN), (CONF_YOUTUBE_FR2, DEFAULT_YOUTUBE_FR2), (CONF_YOUTUBE_KEYWORD, "starship"))
                 },
             }
         )
@@ -162,7 +174,7 @@ class StarshipTrackerOptionsFlow(OptionsFlow):
         )
 
     @callback
-    def _save_options(self, api_key: str, user_input: dict[str, Any], youtube: dict[str, str]) -> ConfigFlowResult:
+    def _save_options(self, api_key: str, user_input: dict[str, Any], youtube: dict[str, Any]) -> ConfigFlowResult:
         """Save resolved channel IDs together with existing options, then reload."""
         self.hass.config_entries.async_update_entry(
             self.config_entry, data={**self.config_entry.data, CONF_API_KEY: api_key}

@@ -43,3 +43,8 @@ CONF_YOUTUBE_KEYWORD: Final = "youtube_keyword"
 
 DEFAULT_YOUTUBE_FR: Final = "@UFOTINIK"
 DEFAULT_YOUTUBE_EN: Final = "@NASASpaceflight"
+
+CONF_YOUTUBE_FR2: Final = "youtube_channel_fr2"
+CONF_YOUTUBE_STARBASE_FR: Final = "youtube_starbase_fr"
+CONF_YOUTUBE_STARBASE_FILTER: Final = "youtube_starbase_filter"
+DEFAULT_YOUTUBE_FR2: Final = "@StarBaseFR"

@@ -319,7 +319,8 @@ class YouTubeSensor(CoordinatorEntity[YouTubeCoordinator], SensorEntity):
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_youtube_{language}"
         self._attr_translation_key = f"youtube_{language}"
-        self._attr_suggested_object_id = f"starship_tracker_youtube_{language}"
+        # Initial suggestion only; the entity registry preserves user renames.
+        self.entity_id = f"sensor.starship_tracker_youtube_{language}"
         self._attr_device_info = _device_info(entry)
 
     @property

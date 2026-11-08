@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -94,4 +96,48 @@ async def test_youtube_sensors_and_independent_failure(hass: HomeAssistant) -> N
     assert fr.attributes['title'] == video['title']
     assert fr.attributes['channel'] == channel
     assert en is not None and en.state == 'unavailable'
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.parametrize("use_filter", [False, True])
+async def test_starbase_sensor_filter_and_fr_event(hass, use_filter):
+    channel = "UC" + "c" * 22
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_API_KEY: "k"}, options={
+        "youtube_channel_fr2": channel, "youtube_starbase_fr": True,
+        "youtube_starbase_filter": use_filter, "youtube_keyword": "starship",
+    })
+    entry.add_to_hass(hass)
+    video = {"video_id": "ccccccccccc", "title": "Le suivi hebdomadaire du projet",
+             "url": "https://www.youtube.com/watch?v=ccccccccccc", "published": "2026-11-08T10:00:00+00:00",
+             "thumbnail": "https://i.ytimg.com/vi/ccccccccccc/hqdefault.jpg"}
+    with patch(f"{P}.youtube_coordinator.async_fetch_feed", AsyncMock(return_value=[video])) as fetch:
+        await _setup(hass, entry, _patches())
+    assert entry.state is ConfigEntryState.LOADED
+    assert fetch.call_count == 1
+    assert fetch.call_args.args[1:] == (channel, 'starship' if use_filter else '')
+    sensor = hass.states.get('sensor.starship_tracker_youtube_fr_starbase')
+    assert sensor is not None and sensor.state == video['title']
+    assert hass.states.get('sensor.starship_tracker_youtube_fr') is None
+    assert hass.states.get('sensor.starship_tracker_youtube_en') is None
+    events = []
+    hass.bus.async_listen('starship_tracker_youtube_video', events.append)
+    coordinator = entry.runtime_data.youtube['fr_starbase']
+    with patch(f"{P}.youtube_coordinator.async_fetch_feed", AsyncMock(return_value=[{**video, 'video_id': 'ddddddddddd'}])):
+        await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert len(events) == 1
+    assert events[0].data['language'] == 'fr'
+    assert events[0].data['channel'] == channel
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_starbase_disabled_does_not_poll(hass):
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, data={CONF_API_KEY: "k"}, options={
+        'youtube_channel_fr2': 'UC' + 'c' * 22, 'youtube_starbase_fr': False,
+    })
+    entry.add_to_hass(hass)
+    with patch(f"{P}.youtube_coordinator.async_fetch_feed", AsyncMock()) as fetch:
+        await _setup(hass, entry, _patches())
+    fetch.assert_not_called()
+    assert hass.states.get('sensor.starship_tracker_youtube_fr_starbase') is None
     assert await hass.config_entries.async_unload(entry.entry_id)

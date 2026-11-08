@@ -158,12 +158,15 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
         language: str,
         channel: str,
         keyword: str,
+        *,
+        source: str | None = None,
     ) -> None:
+        source = source or language
         super().__init__(
             hass,
             _LOGGER,
             config_entry=entry,
-            name=f"{DOMAIN}_youtube_{language}",
+            name=f"{DOMAIN}_youtube_{source}",
             update_interval=timedelta(minutes=10),
         )
         self.language = language
@@ -173,7 +176,7 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
             :16
         ]
         self._store: Store[dict[str, Any]] = Store(
-            hass, 1, f"{DOMAIN}.{entry.entry_id}.youtube.{language}.{scope}"
+            hass, 1, f"{DOMAIN}.{entry.entry_id}.youtube.{source}.{scope}"
         )
         self._loaded = False
         self._initialized = False

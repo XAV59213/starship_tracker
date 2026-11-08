@@ -114,6 +114,16 @@ Renseignez une chaîne française (`youtube_channel_fr`), une chaîne anglaise/a
 - Carte : bloc **📺 Vidéos YouTube**, liens FR / EN ; option `show_youtube: true` par défaut. La dernière vidéo de chaque langue choisie apparaît aussi en tête du carrousel (miniature, titre original, date, badge FR/EN). Un clic ouvre YouTube, pas les détails de mission. `youtube_carousel_lang: auto` sélectionne FR si l’interface HA est française, sinon EN ; valeurs possibles `auto`, `fr`, `en`, `both`. `lang: fr` dans la carte peut forcer la langue de son interface. `carousel_count` limite le total des vignettes, vidéos comprises ; le compteur les inclut. `show_youtube: false` masque les liens et les vignettes ; `show_carousel: false` masque seulement le carrousel. Les champs `youtube_fr` / `youtube_en` permettent de choisir une entité renommée si nécessaire. Le titre original de la vidéo est conservé.
 - Événement `starship_tracker_youtube_video` : `language` (`fr` / `en`), `title`, `url`, `channel`, `published`. La première lecture établit un historique silencieux ; les identifiants vus sont conservés dans le stockage Home Assistant, donc aucun doublon au redémarrage. Un changement de chaîne ou de filtre crée un nouvel historique silencieux.
 
+### Suivi du projet StarBase FR (facultatif)
+
+Une deuxième chaîne française est disponible sans remplacer UFOTINIK : **@StarBaseFR**, pour le suivi du projet Starship / Starbase.
+
+- Activez **« Activer le suivi du projet StarBase FR »** (`youtube_starbase_fr`, **désactivé par défaut**).
+- `youtube_channel_fr2` propose `@StarBaseFR` ; vous pouvez la changer (URL, @pseudo ou ID UC) ou vider le champ. L'ID est résolu uniquement à l'activation ; aucune requête RSS n'est faite tant que l'option reste désactivée. Désactiver l'option conserve l'ID déjà enregistré.
+- **« Appliquer aussi le filtre de titre à StarBase FR »** (`youtube_starbase_filter`) est **désactivé par défaut** : toutes ses publications RSS sont suivies, même si le titre ne contient pas « Starship ». Si activé, le même `youtube_keyword` que les chaînes principales est utilisé. UFOTINIK et NASASpaceflight gardent leur filtre `starship` par défaut.
+- Entité : `sensor.starship_tracker_youtube_fr_starbase`, même état et attributs que les autres capteurs. Événement identique avec `language: fr` et son ID dans `channel` : l'automatisation FR ci-dessous couvre les deux chaînes. Pour les distinguer, filtrez aussi `event_data.channel`.
+- Carte : lien **FR · StarBase FR** et vignette avec badge **FR**. En mode automatique elle apparaît si HA est en français ; `youtube_carousel_lang: both` affiche les trois sources configurées. Première lecture silencieuse et historique persistant indépendant.
+
 ### Notification par langue
 
 Copiez cet exemple dans l'éditeur YAML d'une automatisation et remplacez le service de notification. Pour les anglophones, dupliquez-le en remplaçant `language: fr` par `language: en` (et le titre). Aucun message n'est envoyé sans votre automatisation.
@@ -284,6 +294,8 @@ cards:
 Home Assistant (HACS) integration — **version 1.16.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
+
+Optional **StarBase FR project updates**: enable `youtube_starbase_fr` (off by default), with `youtube_channel_fr2` suggested as `@StarBaseFR`. Its separate sensor is `sensor.starship_tracker_youtube_fr_starbase`; events use `language: fr` and its own `channel` ID. It appears alongside the main FR channel in French carousel mode (all three sources in `both` mode). No lookup/polling while disabled; disabling preserves the resolved ID. Emptying the field also disables the feed. Its `youtube_starbase_filter` toggle is **off by default**, so all recent channel uploads are included; enable it to apply the common keyword. The primary UFOTINIK / NASASpaceflight channels still default to the `starship` filter. Baseline/persistent deduplication is independent.
 
 In **Configure**, suggested defaults are **@UFOTINIK** (FR) and **@NASASpaceflight** (EN); save to enable them, change or clear either channel. The default `starship` title filter excludes unrelated NSF uploads. Shorts in RSS are included if they match. Optionally set `youtube_channel_fr` and/or `youtube_channel_en` to a channel URL, @handle or UC… ID. Handles/URLs are resolved once and stored as channel IDs. If resolution is blocked, enter the UC… ID directly. Leave a channel empty to disable it. `youtube_keyword` filters titles case-insensitively (default `starship`; empty = all uploads). FR/EN label your selected channels; video language is not detected or translated.
 

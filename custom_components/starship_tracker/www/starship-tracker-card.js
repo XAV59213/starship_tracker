@@ -10,6 +10,7 @@ const KEYS = {
   news: ["sensor", "news", "sensor.starship_tracker_starship_news"],
   youtube_fr: ["sensor", "youtube_fr", "sensor.starship_tracker_youtube_fr"],
   youtube_en: ["sensor", "youtube_en", "sensor.starship_tracker_youtube_en"],
+  youtube_fr_starbase: ["sensor", "youtube_fr_starbase", "sensor.starship_tracker_youtube_fr_starbase"],
   total_launches: ["sensor", "total_launches", "sensor.starship_tracker_spacex_completed_missions"],
   total_landings: ["sensor", "total_landings", "sensor.starship_tracker_spacex_total_landings"],
   total_reflights: ["sensor", "total_reflights", "sensor.starship_tracker_spacex_total_reflights"],
@@ -98,6 +99,7 @@ const LABELS = {
   youtube_carousel_lang: "Langue YouTube du carrousel / Carousel YouTube language",
   youtube_fr: "YouTube français / French YouTube",
   youtube_en: "YouTube anglais / English YouTube",
+  youtube_fr_starbase: "YouTube StarBase FR (optionnel) / StarBase FR YouTube (optional)",
   show_news: "Actualités / News",
   news_count: "Nb actualités / News count",
   show_stats: "Compteurs SpaceX / SpaceX counters",
@@ -148,7 +150,7 @@ class StarshipTrackerCard extends HTMLElement {
         { type: "expandable", name: "", title: "Entités (optionnel) / Entities (optional)", flatten: true, schema: [
           ent("next", "sensor"), ent("countdown", "sensor"), ent("status", "sensor"),
           ent("missions", "sensor"), ent("news", "sensor"), ent("live", "binary_sensor"),
-          ent("youtube_fr", "sensor"), ent("youtube_en", "sensor"),
+          ent("youtube_fr", "sensor"), ent("youtube_en", "sensor"), ent("youtube_fr_starbase", "sensor"),
           ent("total_launches", "sensor"), ent("total_landings", "sensor"), ent("total_reflights", "sensor"),
         ] },
       ],
@@ -307,14 +309,14 @@ class StarshipTrackerCard extends HTMLElement {
       .filter(Boolean).map((v) => esc(S(v))).join(" | ");
     const row = (k, v) => `<div class="row"><span class="k">${esc(k)}:</span> ${v}</div>`;
 
-    const youtubeVideos = ["fr", "en"].map((language) => {
-      const state = this._state(`youtube_${language}`);
+    const youtubeVideos = [["fr", "youtube_fr", "FR"], ["en", "youtube_en", "EN"], ["fr", "youtube_fr_starbase", "FR · StarBase FR"]].map(([language, key, label]) => {
+      const state = this._state(key);
       const link = safeUrl(state?.attributes?.url);
       if (!state || ["unknown", "unavailable"].includes(state.state) || !link) return null;
-      return { language, url: link, title: state.attributes.title || state.state,
+      return { language, label, url: link, title: state.attributes.title || state.state,
         thumbnail: safeUrl(state.attributes.thumbnail), published: state.attributes.published };
     }).filter(Boolean);
-    const youtubeLinks = youtubeVideos.map((v) => `<li><b>${v.language.toUpperCase()}</b> · <a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.title)}</a></li>`).join("");
+    const youtubeLinks = youtubeVideos.map((v) => `<li><b>${esc(v.label)}</b> · <a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.title)}</a></li>`).join("");
     const youtubeHtml = C.show_youtube && youtubeLinks
       ? `<h3>📺 ${lang === "fr" ? "Vidéos YouTube" : "YouTube videos"}</h3><ul>${youtubeLinks}</ul>` : "";
 
