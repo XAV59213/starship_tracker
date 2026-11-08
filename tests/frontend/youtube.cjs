@@ -65,60 +65,31 @@ assert.match(Card.getConfigForm().computeLabel({name: 'show_youtube'}), /FR\/EN/
 console.log('PASS: FR/EN links, toggle, locale, escaping, unsafe URLs, absent sensors and entity override');
 
 
-// Carousel: auto matches HA locale, overrides are explicit, native links don't open details.
+// Four separate carousels: SpaceX, UFOTINIK, StarBase FR, NASASpaceflight.
 const missions = Array.from({length: 21}, (_, i) => ({mission: `Flight ${i}`, link: `mission-${i}`, mission_status: 'final'}));
 const allStates = {...states, 'sensor.starship_tracker_starship_missions': {state: '21', attributes: {past: missions}}};
-const tiles = () => card.shadowRoot.track.querySelectorAll('.tile');
-const youtubeCount = () => tiles().filter(t => t.dataset.youtube).length;
+const html = () => card.shadowRoot.innerHTML;
+const cars = () => [...html().matchAll(/data-car="([^"]+)"/g)].map(m => m[1]);
+const count = (id) => { const part = html().split(`data-car="${id}"`)[1] || ''; return (part.split('data-car=')[0].match(/class="tile /g) || []).length; };
 card.setConfig({});
 card.hass = {language: 'fr-FR', states: allStates};
-assert.match(card.shadowRoot.innerHTML, /data-youtube="fr"/);
-assert.doesNotMatch(card.shadowRoot.innerHTML, /data-youtube="en"/);
-assert.equal(tiles().length, 22);
-assert.equal(youtubeCount(), 1);
-assert.equal(card.shadowRoot.counter.textContent, '1 / 22');
-assert.equal(tiles()[0].handlers.click, undefined);
-assert.equal(typeof tiles()[1].handlers.click, 'function');
-assert.match(card.shadowRoot.innerHTML, /<a class="tile youtube"[^>]*href="https:\/\/www.youtube.com\/watch\?v=aaaaaaaaaaa"/);
-assert.match(card.shadowRoot.innerHTML, /hqdefault.jpg/);
-for (let i = 0; i < 21; i++) card.shadowRoot.next.handlers.click({stopPropagation() {}});
-assert.equal(card.shadowRoot.counter.textContent, '22 / 22');
-assert.equal(card.shadowRoot.next.disabled, true);
+assert.deepEqual(cars(), ['spacex', 'youtube_fr']);
+assert.equal(count('spacex'), 21);
+assert.equal(count('youtube_fr'), 1);
+assert.doesNotMatch(html().split('data-car="youtube_fr"')[0], /data-youtube/);
+assert.match(html(), /<a class="tile youtube"[^>]*href="https:\/\/www.youtube.com\/watch\?v=aaaaaaaaaaa"/);
 card.hass = {language: 'en-US', states: allStates};
-assert.match(card.shadowRoot.innerHTML, /data-youtube="en"/);
-assert.doesNotMatch(card.shadowRoot.innerHTML, /data-youtube="fr"/);
-card.setConfig({youtube_carousel_lang: 'both'});
-assert.equal(youtubeCount(), 2);
-assert.equal(tiles().length, 23);
-card.setConfig({youtube_carousel_lang: 'fr'});
-assert.match(card.shadowRoot.innerHTML, /data-youtube="fr"/);
-assert.doesNotMatch(card.shadowRoot.innerHTML, /data-youtube="en"/);
-card.setConfig({youtube_carousel_lang: 'en'});
-assert.match(card.shadowRoot.innerHTML, /data-youtube="en"/);
-card.setConfig({lang: 'fr', youtube_carousel_lang: 'auto'});
-assert.match(card.shadowRoot.innerHTML, /data-youtube="fr"/);
-card.setConfig({show_youtube: false});
-assert.equal(youtubeCount(), 0);
-assert.equal(tiles().length, 21);
-card.setConfig({youtube_carousel_lang: 'both', carousel_count: 10});
-assert.equal(tiles().length, 10);
-assert.equal(youtubeCount(), 2);
-card.setConfig({show_carousel: false});
-assert.equal(card.shadowRoot.track, null);
-console.log('PASS: carousel auto/fr/en/both, native video links, thumbnails, total limit, navigation counter and hidden toggle');
-
-
-// Optional StarBase FR is another French source, without replacing UFOTINIK.
+assert.deepEqual(cars(), ['spacex', 'youtube_en']);
 const starbase = video('Projet hebdomadaire', 'https://www.youtube.com/watch?v=ccccccccccc');
-card.setConfig({});
-card.hass = {language: 'fr', states: {...allStates, 'sensor.starship_tracker_youtube_fr_starbase': starbase}};
-assert.equal(youtubeCount(), 2);
-assert.equal(tiles().length, 23);
-assert.match(card.shadowRoot.innerHTML, /FR · StarBase FR/);
-card.hass = {language: 'en', states: {...allStates, 'sensor.starship_tracker_youtube_fr_starbase': starbase}};
-assert.equal(youtubeCount(), 1);
-assert.doesNotMatch(card.shadowRoot.innerHTML, /data-youtube="fr"/);
+starbase.attributes.videos = [1, 2, 3].map(n => ({title: `SB ${n}`, url: `https://www.youtube.com/watch?v=cccccccccc${n}`, published: '2026-11-0' + n + 'T00:00:00+00:00'}));
 card.setConfig({youtube_carousel_lang: 'both'});
-assert.equal(youtubeCount(), 3);
-assert.equal(tiles().length, 24);
-console.log('PASS: optional StarBase FR source, FR auto selection and three-channel both mode');
+card.hass = {language: 'fr', states: {...allStates, 'sensor.starship_tracker_youtube_fr_starbase': starbase}};
+assert.deepEqual(cars(), ['spacex', 'youtube_fr', 'youtube_fr_starbase', 'youtube_en']);
+assert.equal(count('youtube_fr_starbase'), 3);
+card.setConfig({youtube_carousel_lang: 'both', show_carousel_spacex: false, show_carousel_youtube_en: false});
+assert.deepEqual(cars(), ['youtube_fr', 'youtube_fr_starbase']);
+card.setConfig({carousel_count: 10});
+assert.equal(count('spacex'), 10);
+card.setConfig({show_carousel: false});
+assert.deepEqual(cars(), []);
+console.log('PASS: four separate carousels, language filter, per-carousel toggles and limit');

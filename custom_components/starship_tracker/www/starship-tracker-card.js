@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.16.1";
+const CARD_VERSION = "1.17.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -81,7 +81,7 @@ const trEntry = (d) => TIMELINE_FR[String(d || "").trim().toLowerCase().replace(
 const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
-  show_youtube: true, youtube_carousel_lang: "auto", show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
+  show_youtube: true, youtube_carousel_lang: "auto", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
 };
 
 const LABELS = {
@@ -104,6 +104,10 @@ const LABELS = {
   news_count: "Nb actualités / News count",
   show_stats: "Compteurs SpaceX / SpaceX counters",
   show_carousel: "Carrousel d'images / Image carousel",
+  show_carousel_spacex: "Carrousel SpaceX / SpaceX carousel",
+  show_carousel_youtube_fr: "Carrousel UFOTINIK (FR) / UFOTINIK carousel",
+  show_carousel_youtube_fr_starbase: "Carrousel StarBase FR / StarBase FR carousel",
+  show_carousel_youtube_en: "Carrousel NASASpaceflight (EN) / NASASpaceflight carousel",
   carousel_count: "Nb vignettes / Max tiles",
   total_launches: "Missions terminées / Completed missions",
   total_landings: "Atterrissages / Landings", total_reflights: "Réutilisations / Reflights",
@@ -132,6 +136,7 @@ class StarshipTrackerCard extends HTMLElement {
         { type: "expandable", name: "", title: "Compteurs SpaceX / SpaceX counters", flatten: true, schema: [b("show_stats")] },
         { type: "expandable", name: "", title: "Carrousel / Carousel", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [b("show_carousel"), num("carousel_count", 50)] },
+          { type: "grid", name: "", flatten: true, schema: [b("show_carousel_spacex"), b("show_carousel_youtube_fr"), b("show_carousel_youtube_fr_starbase"), b("show_carousel_youtube_en")] },
           { name: "youtube_carousel_lang", selector: { select: { options: [
             { value: "auto", label: "Auto (langue HA / HA language)" },
             { value: "fr", label: "Français / French" },
@@ -203,7 +208,7 @@ class StarshipTrackerCard extends HTMLElement {
   disconnectedCallback() {
     this._timer && clearInterval(this._timer);
     this._timer = null;
-    this._carouselResize?.disconnect();
+    (this._carouselResizes || []).forEach((r) => r.disconnect()); this._carouselResizes = [];
   }
 
   // HA appelle « set hass » à chaque changement d'état de toute la maison :
@@ -309,7 +314,8 @@ class StarshipTrackerCard extends HTMLElement {
       .filter(Boolean).map((v) => esc(S(v))).join(" | ");
     const row = (k, v) => `<div class="row"><span class="k">${esc(k)}:</span> ${v}</div>`;
 
-    const youtubeVideos = [["fr", "youtube_fr", "FR"], ["en", "youtube_en", "EN"], ["fr", "youtube_fr_starbase", "FR · StarBase FR"]].map(([language, key, label]) => {
+    const youtubeChannels = [["fr", "youtube_fr", "FR", "UFOTINIK"], ["fr", "youtube_fr_starbase", "FR · StarBase FR", "StarBase FR"], ["en", "youtube_en", "EN", "NASASpaceflight"]];
+    const youtubeVideos = youtubeChannels.map(([language, key, label]) => {
       const state = this._state(key);
       const link = safeUrl(state?.attributes?.url);
       if (!state || ["unknown", "unavailable"].includes(state.state) || !link) return null;
@@ -425,39 +431,50 @@ class StarshipTrackerCard extends HTMLElement {
       ? panelOf(sel || { ...a, mission: next.state }, isNextSel) : "";
     const badge = (m) => m.is_live ? ["live", L.bLive] : m.mission_status === "final" ? ["done", L.bDone] : ["soon", L.bSoon];
     const youtubeLanguage = C.youtube_carousel_lang === "auto" ? lang : C.youtube_carousel_lang;
-    const youtubeTiles = C.show_youtube ? youtubeVideos
-      .filter((v) => youtubeLanguage === "both" || v.language === youtubeLanguage)
-      .map((v) => ({ ...v, youtube: true })) : [];
-    // Videos come first so they are visible even with an existing small tile limit.
-    const tiles = [...youtubeTiles, ...allM].slice(0, C.carousel_count);
-    const carouselHtml = C.show_carousel && tiles.length ? `<div class="car">
+    const ytTile = (m) => {
+      const published = Date.parse(m.published);
+      const d = Number.isFinite(published) ? new Date(published).toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "—";
+      return `<a class="tile youtube" data-youtube="${m.language}" href="${esc(m.url)}" target="_blank" rel="noopener" aria-label="${esc(m.title)} (${m.language.toUpperCase()})">
+        <div class="timg">${m.thumbnail ? `<img src="${esc(m.thumbnail)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge youtube">${m.language.toUpperCase()}</span></div>
+        <div class="tt">▶ ${esc(m.title)}</div><div class="ts">${esc(d)} · YouTube</div><div class="bar youtube"></div>
+      </a>`;
+    };
+    const spacexTile = (m) => {
+      const [cls, lbl] = badge(m);
+      const im = safeUrl(m.image);
+      const d = m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "TBD";
+      return `<div class="tile ${cls}" data-key="${esc(m.link || m.mission)}" role="button" tabindex="0">
+        <div class="timg">${im ? `<img src="${esc(im)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge ${cls}">${esc(lbl)}</span></div>
+        <div class="tt">${esc(T(m.mission))}</div>
+        <div class="ts">${esc(d)}${m.launch_site ? " · " + esc(m.launch_site) : ""}</div>
+        <div class="bar ${cls}"></div>
+      </div>`;
+    };
+    const carBlock = (id, title, html) => `<div class="carwrap" data-car="${id}"><h3>${title}</h3><div class="car">
         <button class="arr l" type="button" aria-label="prev">‹</button>
-        <div class="track">${tiles.map((m) => {
-          if (m.youtube) {
-            const published = Date.parse(m.published);
-            const d = Number.isFinite(published) ? new Date(published).toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "—";
-            return `<a class="tile youtube" data-youtube="${m.language}" href="${esc(m.url)}" target="_blank" rel="noopener" aria-label="${esc(m.title)} (${m.language.toUpperCase()})">
-              <div class="timg">${m.thumbnail ? `<img src="${esc(m.thumbnail)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge youtube">${m.language.toUpperCase()}</span></div>
-              <div class="tt">▶ ${esc(m.title)}</div><div class="ts">${esc(d)} · YouTube</div><div class="bar youtube"></div>
-            </a>`;
-          }
-          const [cls, lbl] = badge(m);
-          const im = safeUrl(m.image);
-          const d = m.launch_date ? new Date(m.launch_date + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "short", year: "numeric" }) : "TBD";
-          return `<div class="tile ${cls}" data-key="${esc(m.link || m.mission)}" role="button" tabindex="0">
-            <div class="timg">${im ? `<img src="${esc(im)}" alt="" decoding="async" width="1000" height="563" draggable="false">` : ""}<span class="badge ${cls}">${esc(lbl)}</span></div>
-            <div class="tt">${esc(T(m.mission))}</div>
-            <div class="ts">${esc(d)}${m.launch_site ? " · " + esc(m.launch_site) : ""}</div>
-            <div class="bar ${cls}"></div>
-          </div>`;
-        }).join("")}</div>
+        <div class="track">${html}</div>
         <button class="arr r" type="button" aria-label="next">›</button>
         <div class="car-count" role="status" aria-live="polite"></div>
-      </div>` : "";
+      </div></div>`;
+    const carousels = [];
+    if (C.show_carousel && C.show_carousel_spacex !== false && allM.length)
+      carousels.push(carBlock("spacex", "🚀 SpaceX Starship", allM.slice(0, C.carousel_count).map(spacexTile).join("")));
+    if (C.show_carousel && C.show_youtube) youtubeChannels.forEach(([language, key, , name]) => {
+      if (C["show_carousel_" + key] === false || !(youtubeLanguage === "both" || language === youtubeLanguage)) return;
+      const st = this._state(key);
+      if (!st || ["unknown", "unavailable"].includes(st.state)) return;
+      const list = Array.isArray(st.attributes?.videos) && st.attributes.videos.length ? st.attributes.videos : [st.attributes || {}];
+      const vids = list.map((v) => ({ language, url: safeUrl(v.url), title: v.title || st.state, thumbnail: safeUrl(v.thumbnail), published: v.published }))
+        .filter((v) => v.url).slice(0, C.carousel_count);
+      if (vids.length) carousels.push(carBlock(key, `📺 ${name} (${language.toUpperCase()})`, vids.map(ytTile).join("")));
+    });
+    const carouselHtml = carousels.join("");
 
-    const oldTrack = this.shadowRoot.querySelector(".track");
-    const keepScroll = oldTrack ? oldTrack.scrollLeft : 0;
-    this._carouselResize?.disconnect();
+    const keepScrolls = {};
+    (this.shadowRoot.querySelectorAll(".carwrap") || []).forEach((w) => {
+      const t = w.querySelector(".track"); if (t) keepScrolls[w.dataset.car] = t.scrollLeft;
+    });
+    (this._carouselResizes || []).forEach((r) => r.disconnect()); this._carouselResizes = [];
     this.shadowRoot.innerHTML = `
       <style>
         ha-card { padding: 16px; }
@@ -553,12 +570,14 @@ class StarshipTrackerCard extends HTMLElement {
     this.shadowRoot.querySelectorAll("details.tl").forEach((d) => d.addEventListener("toggle", () => {
       if (d.open) this._secs.add(d.dataset.sec); else this._secs.delete(d.dataset.sec);
     }));
-    const track = this.shadowRoot.querySelector(".track");
-    if (track) {
+    this.shadowRoot.querySelectorAll(".carwrap").forEach((wrap) => {
+      const track = wrap.querySelector(".track");
+      if (!track) return;
+      const keepScroll = keepScrolls[wrap.dataset.car] || 0;
       const items = [...track.querySelectorAll(".tile")];
-      const prev = this.shadowRoot.querySelector(".arr.l");
-      const next = this.shadowRoot.querySelector(".arr.r");
-      const counter = this.shadowRoot.querySelector(".car-count");
+      const prev = wrap.querySelector(".arr.l");
+      const next = wrap.querySelector(".arr.r");
+      const counter = wrap.querySelector(".car-count");
       const maxScroll = () => Math.max(0, track.scrollWidth - track.clientWidth);
       // offsetLeft is relative to .track, not to the card/arrow container.
       const target = (i) => Math.min(maxScroll(), items[i].offsetLeft);
@@ -587,8 +606,9 @@ class StarshipTrackerCard extends HTMLElement {
       prev.addEventListener("click", (ev) => { ev.stopPropagation(); step(-1); });
       next.addEventListener("click", (ev) => { ev.stopPropagation(); step(1); });
       track.addEventListener("scroll", update, { passive: true });
-      this._carouselResize = new ResizeObserver(update);
-      this._carouselResize.observe(track);
+      const ro = new ResizeObserver(update);
+      ro.observe(track);
+      this._carouselResizes.push(ro);
       update();
       track.querySelectorAll(".tile").forEach((t) => {
         // Native anchors open YouTube (including keyboard Enter), not mission details.
@@ -602,7 +622,7 @@ class StarshipTrackerCard extends HTMLElement {
         t.addEventListener("click", open);
         t.addEventListener("keydown", (ev) => { if (ev.key === "Enter") open(ev); });
       });
-    }
+    });
   }
 }
 
