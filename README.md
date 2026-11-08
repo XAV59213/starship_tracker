@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.25.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.26.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -206,6 +206,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.26.0** : bloc mission repensé (grand compte à rebours, grille avec icônes, tags en pastilles, boutons Détails/Vidéo, emplacement traduit). EN: redesigned mission block.
+
 **1.25.0** : nouveau carrousel « 🔴 En direct » en tête des carrousels YouTube, qui regroupe les vidéos en direct (y compris les flux 24/7 NASASpaceflight) ; désactivable avec `show_carousel_live: false`. EN: dedicated live carousel.
 
 **1.24.1** : tests sur de vraies pages YouTube enregistrées (UFOTINIK, StarBase FR, NASASpaceflight) pour détecter un changement de format, wiki en anglais. EN: recorded YouTube page tests, English wiki.
@@ -354,7 +356,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.25.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.26.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
