@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.25.0";
+const CARD_VERSION = "1.26.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -288,14 +288,14 @@ class StarshipTrackerCard extends HTMLElement {
     const L = lang === "fr"
       ? { provider: "Fournisseur", vehicle: "Véhicule", pad: "Rampe de lancement", location: "Emplacement", date: "Date cible",
           window: "Fenêtre de lancement", dateSource: "Source de la date", sourceFeed: "Flux", sourcePage: "Page mission",
-          countdown: "Compte à rebours", tags: "Tags", live: "EN DIRECT", nolive: "Pas de live en cours", watch: "Regarder",
+          countdown: "Compte à rebours", tags: "Tags", place: "Starbase, Texas, États-Unis", live: "EN DIRECT", nolive: "Pas de live en cours", watch: "Regarder",
           news: "Actualités Starship", nonews: "Aucune actualité", details: "Détails", hide: "Masquer les détails", status: "Statut", page: "Page mission spacex.com", webcast: "Webcast", links: "Liens", nodesc: "Pas de description disponible", bSoon: "À VENIR", watchVideo: "Voir la vidéo", plan: "Plan de vol", cdTitle: "COMPTE À REBOURS", tlTitle: "CHRONOLOGIE DU VOL", approx: "Horaires approximatifs", loading: "Chargement des détails…", bLive: "DIRECT", bDone: "TERMINÉ", none: "Aucune mission annoncée",
           upcoming: "Prochaines missions Starship", past: "Derniers vols Starship", video: "▶ Vidéo", nomission: "Aucune",
           s1: "Missions terminées", s2: "Atterrissages totaux", s3: "Réutilisations totales",
           ytSoon: "À venir", ytLive: "En direct", ytDone: "Terminé" }
       : { provider: "Provider", vehicle: "Vehicle", pad: "Launch Pad", location: "Location", date: "Target Date",
           window: "Launch window", dateSource: "Date source", sourceFeed: "Feed", sourcePage: "Mission page",
-          countdown: "Countdown", tags: "Tags", live: "LIVE", nolive: "No live stream", watch: "Watch",
+          countdown: "Countdown", tags: "Tags", place: "Starbase, Texas, United States", live: "LIVE", nolive: "No live stream", watch: "Watch",
           news: "Starship news", nonews: "No news", details: "Details", hide: "Hide details", status: "Status", page: "spacex.com mission page", webcast: "Webcast", links: "Links", nodesc: "No description available", bSoon: "UPCOMING", watchVideo: "Watch video", plan: "Flight plan", cdTitle: "COUNTDOWN", tlTitle: "FLIGHT TIMELINE", approx: "All times approximate", loading: "Loading details…", bLive: "LIVE", bDone: "COMPLETED", none: "No mission announced",
           upcoming: "Upcoming Starship missions", past: "Latest Starship flights", video: "▶ Video", nomission: "None",
           s1: "Completed missions", s2: "Total landings", s3: "Total reflights",
@@ -324,7 +324,9 @@ class StarshipTrackerCard extends HTMLElement {
     const sourceNames = { feed: L.sourceFeed, mission_page: L.sourcePage };
     const sourceLabel = sourceNames[a.date_source] || "";
     const tags = [a.mission_type, status?.state && !["unknown", "unavailable"].includes(status.state) ? status.state : a.mission_status]
-      .filter(Boolean).map((v) => esc(S(v))).join(" | ");
+      .filter(Boolean).map((v) => esc(S(v)));
+    const tagList = tags;
+    const cell = (icon, k, v) => `<div class="cell"><span class="ci">${icon}</span><div><div class="ck">${esc(k)}</div><div class="cv">${v}</div></div></div>`;
     const row = (k, v) => `<div class="row"><span class="k">${esc(k)}:</span> ${v}</div>`;
 
     const youtubeChannels = [["fr", "youtube_fr", "FR", "UFOTINIK"], ["fr", "youtube_fr_starbase", "FR · StarBase FR", "StarBase FR"], ["en", "youtube_en", "EN", "NASASpaceflight"]];
@@ -532,7 +534,18 @@ class StarshipTrackerCard extends HTMLElement {
         li { margin: 4px 0; }
         a { color: var(--primary-color); text-decoration: none; }
         .muted { color: var(--secondary-text-color); list-style: none; margin-left: -18px; }
-        .cd { font-weight: 700; }
+        .cdbox { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: linear-gradient(135deg, rgba(25,118,210,.25), rgba(25,118,210,.08)); text-align: center; }
+        .cdl { font-size: .8em; text-transform: uppercase; letter-spacing: .05em; color: var(--secondary-text-color); }
+        .cd { font-weight: 800; font-size: 1.8em; font-variant-numeric: tabular-nums; }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+        .chip { padding: 2px 10px; border-radius: 999px; font-size: .8em; background: var(--secondary-background-color); border: 1px solid var(--divider-color); }
+        .mgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 14px; }
+        .cell { display: flex; gap: 8px; align-items: flex-start; }
+        .ci { font-size: 1.2em; line-height: 1.4; }
+        .ck { font-size: .75em; text-transform: uppercase; color: var(--secondary-text-color); }
+        .cv { font-weight: 600; }
+        .mlinks { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .mbtn { padding: 6px 12px; border-radius: 8px; background: var(--secondary-background-color); text-decoration: none; color: var(--primary-color); font-weight: 600; }
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 4px; color: inherit; }
         .stat { text-align: center; padding: 8px 4px; border-radius: 8px; background: var(--secondary-background-color); }
         .sv { font-size: 1.6em; font-weight: 700; }
@@ -579,17 +592,17 @@ class StarshipTrackerCard extends HTMLElement {
       </style>
       <ha-card>
         <div class="title">${C.title ? esc(C.title) : `${hasMission ? esc(T(next.state)) : "TBD"} (SpaceX)`}</div>
-        ${C.show_details ? `
-        ${row(L.provider, "SpaceX")}
-        ${row(L.vehicle, esc(a.vehicle || "Starship"))}
-        ${row(L.pad, esc(a.launch_site || "Starbase"))}
-        ${row(L.location, "Starbase, Texas, United States")}
-        ${row(L.date, esc(hasMission ? date : "TBD"))}
-        ${hasMission && windowText ? row(L.window, esc(windowText)) : ""}
-        ${hasMission && sourceLabel ? row(L.dateSource, esc(sourceLabel)) : ""}` : ""}
-        ${hasMission && C.show_countdown ? row(L.countdown, `<span class="cd">${esc(this._countdown(launchMs))}</span>`) : ""}
-        ${C.show_details ? row(L.tags, hasMission ? (tags || "—") + " |" : esc(L.none)) : ""}
-        ${hasMission && C.show_details ? `<div class="row"><a href="${esc(url)}" target="_blank" rel="noopener">${L.details} →</a>${C.show_videos ? ` · <a href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</div>` : ""}
+        ${hasMission && C.show_countdown ? `<div class="cdbox"><div class="cdl">⏱️ ${esc(L.countdown)}</div><div class="cd">${esc(this._countdown(launchMs))}</div></div>` : ""}
+        ${C.show_details ? `<div class="chips">${hasMission ? tagList.map((t) => `<span class="chip">${t}</span>`).join("") : `<span class="chip">${esc(L.none)}</span>`}</div>
+        <div class="mgrid">
+          ${cell("📅", L.date, esc(hasMission ? date : "TBD"))}
+          ${hasMission && windowText ? cell("🪟", L.window, esc(windowText)) : ""}
+          ${cell("🚀", L.vehicle, esc(a.vehicle || "Starship") + " · SpaceX")}
+          ${cell("🏗️", L.pad, esc(a.launch_site || "Starbase"))}
+          ${cell("📍", L.location, esc(L.place))}
+          ${hasMission && sourceLabel ? cell("🔎", L.dateSource, esc(sourceLabel)) : ""}
+        </div>` : ""}
+        ${hasMission && C.show_details ? `<div class="mlinks"><a class="mbtn" href="${esc(url)}" target="_blank" rel="noopener">ℹ️ ${L.details}</a>${C.show_videos ? `<a class="mbtn" href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</div>` : ""}
         ${spacexCarHtml}
         ${showBtn ? `<button class="dbtn" type="button">${this._open ? L.hide : "ℹ️ " + L.details}</button>` : ""}
         ${panel}
