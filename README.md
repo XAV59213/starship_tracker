@@ -25,7 +25,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.14.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.15.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -37,6 +37,28 @@ Version actuelle : **1.14.0**. Nécessite Home Assistant **2024.11.0** ou plus r
 1. Créer une clé gratuite sur <https://newsapi.org/register>.
 2. Paramètres → Appareils et services → *Ajouter une intégration* → **Starship Tracker**.
 3. Coller la clé NewsAPI. Pour la changer plus tard : *Paramètres → Appareils et services → Starship Tracker → Configurer* (la clé est testée puis l’intégration rechargée). Elle est validée puis stockée dans la config entry Home Assistant (jamais dans le code).
+
+### Paramètres d'installation / Installation parameters
+
+| Paramètre | Description |
+|---|---|
+| Clé NewsAPI (`api_key`) | Clé gratuite [newsapi.org](https://newsapi.org/register), utilisée seulement pour le capteur d'actualités. Testée avant la création de l'entrée. |
+
+### Paramètres de configuration
+
+- **Options** (Paramètres → Appareils et services → Starship Tracker → Configurer) : changer la clé NewsAPI.
+- **Reconfigurer** : même chose depuis le menu ⋮ de l'entrée.
+- **Réauthentification** : si NewsAPI refuse la clé (401), Home Assistant affiche « Réauthentification requise » pour saisir une nouvelle clé.
+
+### Suppression / Removal
+
+1. Paramètres → Appareils et services → Starship Tracker → ⋮ → **Supprimer**.
+2. HACS → Starship Tracker → **Supprimer**, puis redémarrer Home Assistant.
+3. Retirer la carte `custom:starship-tracker-card` de vos tableaux de bord.
+
+### Qualité / Quality scale
+
+Niveau **Silver** de l'[Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) : voir [`quality_scale.yaml`](custom_components/starship_tracker/quality_scale.yaml). Tests : `pytest` (pytest-homeassistant-custom-component), couverture ~96 %.
 
 ## ⚠️ Sécurité
 
@@ -99,6 +121,8 @@ Integration icons and logos live in `custom_components/starship_tracker/brand/` 
 used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
+
+**1.15.0** : Quality Scale **Silver** (`quality_scale.yaml`) : réauthentification NewsAPI, reconfiguration, `PARALLEL_UPDATES`, exception traduite du bouton, descriptions des champs, tests HA (config flow 100 %, ~96 % au total) + workflow Tests ; HACS : validation sans `ignore`, description et topics du dépôt.
 
 **1.14.0** : tous les vols Starship (21 : SN5 → Flight 15) dans le carrousel et la liste (`carousel_count` par défaut 25) ; vignettes à taille fixe (image `<img>` 16/9, plus de vignette vide sur mobile, 1 vignette ≈ 82 % de largeur) ; panneau Détails : vidéo (YouTube intégré, sinon bouton ▶ vers le direct/replay X), image du plan de vol (infographie), sections repliables COMPTE À REBOURS et CHRONOLOGIE DU VOL en police monospace. Nouveaux attributs prochaine mission : `mission_videos`, `mission_infographic(_mobile)`, `mission_countdown`, `mission_timeline`. Pour les vols passés, la carte lit la page mission à la demande (cache 6 h).
 
@@ -212,8 +236,9 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.14.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.15.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
+- **1.15.0** — Quality Scale **Silver** (`quality_scale.yaml`): NewsAPI reauth, reconfigure flow, `PARALLEL_UPDATES`, translated button exception, field descriptions, HA tests (config flow 100 %, ~96 % overall) + Tests workflow; HACS validation without ignores, repo description/topics.
 - **1.14.0** — all Starship flights (21, SN5 → Flight 15) in the carousel and list (`carousel_count` default 25); fixed-size tiles (no more empty tile on mobile); Details panel: video (YouTube embed or ▶ button to the X webcast), flight-plan infographic, collapsible monospace COUNTDOWN and FLIGHT TIMELINE. New next-mission attributes `mission_videos`, `mission_infographic(_mobile)`, `mission_countdown`, `mission_timeline`; past flights load their mission page on demand in the card (6 h cache).
 - **1.13.1** — fix page jumping on the card: re-render only when a Starship entity changes (not on every `hass` update), countdown updated in place, Details image space reserved (16/9), panel state and carousel scroll kept.
 - **1.13.0** — card « Details » button (`show_details_button`, on by default) plus an image carousel (`show_carousel`, `carousel_count`) of upcoming + past Starship missions with UPCOMING / LIVE / COMPLETED badges — tap a tile for its details; `image` attribute in the missions lists — expanding the mission image, local date/time, window, pad, status, description and links. The next mission's page is always fetched (30 min cache); new next-mission attributes `mission_image`, `mission_description` (plain text, ≤1500 chars), `mission_url`, `mission_links`, `webcast_links`.

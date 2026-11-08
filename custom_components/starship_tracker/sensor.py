@@ -28,6 +28,10 @@ def _device_info(entry: StarshipConfigEntry) -> DeviceInfo:
     )
 
 
+# Lecture seule via coordinators : aucune limite de mises à jour parallèles.
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: StarshipConfigEntry,

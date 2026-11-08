@@ -4,10 +4,15 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import StarshipConfigEntry
+from .const import DOMAIN
 from .sensor import _device_info
+
+
+PARALLEL_UPDATES = 1
 
 
 async def async_setup_entry(
@@ -37,3 +42,8 @@ class StarshipRefreshButton(ButtonEntity):
         await data.live.async_refresh()
         await data.news.async_refresh()
         await data.stats.async_refresh()
+        if not data.live.last_update_success:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="refresh_failed",
+            )

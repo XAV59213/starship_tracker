@@ -6,6 +6,29 @@
         "description": "Enter your free NewsAPI key, available at {register_url}.",
         "data": {
           "api_key": "NewsAPI key"
+        },
+        "data_description": {
+          "api_key": "Free key from newsapi.org, used only for the Starship news sensor."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate NewsAPI",
+        "description": "The NewsAPI key was rejected. Enter a new key, available at {register_url}.",
+        "data": {
+          "api_key": "NewsAPI key"
+        },
+        "data_description": {
+          "api_key": "Free key from newsapi.org, used only for the Starship news sensor."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Starship Tracker",
+        "description": "Enter a new NewsAPI key, available at {register_url}.",
+        "data": {
+          "api_key": "NewsAPI key"
+        },
+        "data_description": {
+          "api_key": "Free key from newsapi.org, used only for the Starship news sensor."
         }
       }
     },
@@ -15,7 +38,9 @@
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Starship Tracker is already configured"
+      "already_configured": "Starship Tracker is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Reconfiguration was successful"
     }
   },
   "entity": {
@@ -80,6 +105,9 @@
         "description": "Enter a new NewsAPI key (available at {register_url}). The integration reloads after saving.",
         "data": {
           "api_key": "NewsAPI key"
+        },
+        "data_description": {
+          "api_key": "Free key from newsapi.org, used only for the Starship news sensor."
         }
       }
     },
@@ -87,6 +115,11 @@
       "invalid_auth": "Invalid API key",
       "cannot_connect": "Failed to connect to NewsAPI",
       "unknown": "Unexpected error"
+    }
+  },
+  "exceptions": {
+    "refresh_failed": {
+      "message": "Could not refresh SpaceX data (spacex.com unreachable)."
     }
   }
 }
