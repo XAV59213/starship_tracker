@@ -303,7 +303,7 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
         ):
             latest = {**videos[0], "channel": self.channel}
         if latest:
-            # Last 15 Starship videos for the card carousel: RSS plus public channel tabs.
+            # Last 50 Starship videos for the card carousel: RSS plus public channel tabs.
             # Tabs are best effort: any failure must leave the RSS sensor available.
             try:
                 extra = await async_fetch_channel_videos(
