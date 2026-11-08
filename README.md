@@ -25,7 +25,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.12.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.13.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -100,6 +100,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.13.0** : bouton « Détails » sur la carte (option `show_details_button`, affiché par défaut) qui déplie la photo de la mission, la date/heure locale, la fenêtre, la rampe, le statut, la description et les liens (webcast, page spacex.com). La page mission de la prochaine mission est toujours lue (cache 30 min) ; nouveaux attributs du capteur prochaine mission : `mission_image` (URL absolue), `mission_description` (texte, 1500 caractères max), `mission_url`, `mission_links`, `webcast_links`.
+
 **1.12.0** : date cible et compte à rebours lorsque le flux SpaceX n'a pas de date (Starship Flight 15). La page mission est mise en cache 30 min et la prose est convertie en UTC — « Friday, November 13 », fenêtre de 75 minutes ouvrant à 4:45 p.m. CT → `2026-11-13T22:45:00Z`. La carte lit l'état timestamp du compte à rebours (repli : `launch_date` + `launch_time`) et affiche la fenêtre (`launch_window_minutes`) ainsi que la source (`date_source` : Flux / Page mission, Feed / Mission page).
 
 **1.11.0** : compteurs SpaceX (missions terminées / atterrissages / réutilisations) en sensors et sur la carte (`show_stats`, réglable dans l’éditeur visuel).
@@ -121,6 +123,7 @@ Affiche la prochaine mission façon fiche (titre « Mission (SpaceX) », fournis
 type: custom:starship-tracker-card
 title: ""            # titre perso (vide = nom de la mission)
 show_details: true   # fiche mission (fournisseur, véhicule, rampe, date, tags)
+show_details_button: true   # bouton « Détails » : photo, date locale, fenêtre, rampe, statut, description, liens
 show_countdown: true # compte à rebours
 show_live: true      # bandeau live
 show_videos: true    # liens vidéo cliquables
@@ -203,8 +206,9 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.12.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.13.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
+- **1.13.0** — card « Details » button (`show_details_button`, on by default) expanding the mission image, local date/time, window, pad, status, description and links. The next mission's page is always fetched (30 min cache); new next-mission attributes `mission_image`, `mission_description` (plain text, ≤1500 chars), `mission_url`, `mission_links`, `webcast_links`.
 - **1.12.0** — when a Starship tile has null `launchDate`, `launchTime` and `endDate`, the mission-page prose is parsed (cached 30 min) into a UTC timestamp for the countdown and the card. Flight 15: 4:45 p.m. CT on November 13, 2026 → `2026-11-13T22:45:00Z`. New attributes: `date_source` (`feed` / `mission_page`) and `launch_window_minutes`. Feed values still win when present.
 - **Starship live** (`binary_sensor`): `on` while a Starship mission is live on spacex.com (checked every 5 min, no key).
 - **Next Starship mission** (`sensor`): name of the next announced Starship mission; attributes `launch_date`, `launch_time`, `launch_site`, `mission_status`, `vehicle`, `mission_type`, `url`, `date_source`, `launch_window_minutes`.

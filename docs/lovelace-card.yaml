@@ -1,3 +1,6 @@
+# Carte intégrée (recommandé) / Built-in card (recommended):
+#   type: custom:starship-tracker-card
+#   show_details_button: true   # bouton « Détails » (photo + infos) / Details button
 # Starship Tracker — carte Lovelace / Lovelace card
 # Style « fiche mission » (titre « Mission (Provider) » + lignes), cartes natives uniquement.
 # Adaptez les entity_id si votre HA est en français (voir README).
@@ -19,7 +22,11 @@ cards:
       **Countdown:** {{ state_attr(c, 'countdown') or '—' }}{% if state_attr(c, 'launched') %} (lancé / launched){% endif %}<br>
       **Tags:** {{ state_attr(m, 'mission_type') or 'Test flight' }} | {{ state_attr(m, 'mission_status') or 'Upcoming' }} |
 
-      [Détails / Details]({{ state_attr(m, 'url') }})
+      {% if state_attr(m, 'mission_image') %}![{{ states(m) }}]({{ state_attr(m, 'mission_image') }}){% endif %}
+
+      {{ (state_attr(m, 'mission_description') or '') | truncate(400) }}
+
+      [Détails / Details]({{ state_attr(m, 'mission_url') or state_attr(m, 'url') }})
       {% else %}
       ## TBD (SpaceX)
 
