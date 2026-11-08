@@ -287,7 +287,7 @@ async def async_fetch_channel_videos(
                 ) as response:
                     response.raise_for_status()
                     found += parse_channel_tab(await _read_text(response, 6 * MAX_RESPONSE), keyword, now)
-        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+        except Exception as err:  # noqa: BLE001 - best effort, never blocks the RSS sensor
             _LOGGER.debug("YouTube tab %s/%s: %s", channel, tab, err)
     return found
 
