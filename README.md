@@ -33,7 +33,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.19.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.19.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -205,6 +205,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.19.1** : un échec des onglets YouTube `/videos` et `/streams` ne rend plus le capteur RSS indisponible (tests corrigés).
+
 **1.19.0** : Quality Scale **Gold** : icônes dans `icons.json`, messages d'erreur traduits (FR/EN), capteur « page véhicule » désactivé par défaut, section Dépannage.
 
 **1.18.0** : les carrousels YouTube montrent les 15 dernières vidéos Starship de chaque chaîne, pas seulement celles parmi les 15 derniers uploads : en plus du flux RSS, lecture des onglets publics Vidéos et En direct (sans clé API, date estimée pour les plus anciennes). Les notifications restent basées sur le RSS.
@@ -335,7 +337,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.19.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.19.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
@@ -349,6 +351,7 @@ Public RSS is polled every 10 minutes without a YouTube API key/account. Sensors
 
 Copy [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml) into an automation's YAML editor, replace the notification service and use `event_data: {language: en}` for English notifications (`fr` for French). Notifications require your own automation.
 
+- **1.19.1** — YouTube channel tab failures no longer make the RSS sensor unavailable.
 - **1.19.0** — Quality Scale **Gold**: `icons.json`, translated update errors (FR/EN), vehicle page sensor disabled by default, troubleshooting section.
 - **1.18.0** — YouTube carousels show the last 15 Starship videos per channel: RSS plus public Videos/Live tabs (no API key, estimated dates for older items). Notifications still use RSS only.
 - **1.17.2** — Starship mission details now appear right below the SpaceX carousel, before the YouTube carousels.
