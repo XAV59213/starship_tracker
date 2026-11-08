@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.15.0";
+const CARD_VERSION = "1.15.1";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -187,6 +187,7 @@ class StarshipTrackerCard extends HTMLElement {
   disconnectedCallback() {
     this._timer && clearInterval(this._timer);
     this._timer = null;
+    this._carouselResize?.disconnect();
   }
 
   // HA appelle « set hass » à chaque changement d'état de toute la maison :
@@ -411,10 +412,12 @@ class StarshipTrackerCard extends HTMLElement {
           </div>`;
         }).join("")}</div>
         <button class="arr r" type="button" aria-label="next">›</button>
+        <div class="car-count" role="status" aria-live="polite"></div>
       </div>` : "";
 
     const oldTrack = this.shadowRoot.querySelector(".track");
     const keepScroll = oldTrack ? oldTrack.scrollLeft : 0;
+    this._carouselResize?.disconnect();
     this.shadowRoot.innerHTML = `
       <style>
         ha-card { padding: 16px; }
@@ -441,7 +444,7 @@ class StarshipTrackerCard extends HTMLElement {
         .desc p { margin: 6px 0; line-height: 1.4; }
         .muted0 { color: var(--secondary-text-color); }
         .car { position: relative; margin: 12px 0 4px; }
-        .track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+        .track { position: relative; display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
         .track::-webkit-scrollbar { display: none; }
         .tile { flex: 0 0 auto; width: calc(50% - 6px); min-width: 200px; max-width: 340px; box-sizing: border-box; scroll-snap-align: start; cursor: pointer; border-radius: 14px; overflow: hidden; background: var(--secondary-background-color); position: relative; }
         .timg { aspect-ratio: 16 / 9; width: 100%; background: #1a1a1a; position: relative; border-radius: 14px 14px 0 0; overflow: hidden; }
@@ -467,6 +470,8 @@ class StarshipTrackerCard extends HTMLElement {
         .ts { font-size: 0.8em; color: var(--secondary-text-color); padding: 2px 10px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .bar { height: 4px; width: 100%; }
         .arr { position: absolute; top: calc(50% - 34px); width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer; z-index: 2; background: rgba(0,0,0,.6); color: #fff; font-size: 1.4em; line-height: 1; }
+        .arr:disabled { visibility: hidden; pointer-events: none; }
+        .car-count { text-align: center; font-size: .8em; color: var(--secondary-text-color); padding-top: 4px; font-variant-numeric: tabular-nums; }
         .arr.l { left: 4px; } .arr.r { right: 4px; }
         .sl { font-size: 0.8em; color: var(--secondary-text-color); text-transform: uppercase; }
       </style>
@@ -507,11 +512,41 @@ class StarshipTrackerCard extends HTMLElement {
     }));
     const track = this.shadowRoot.querySelector(".track");
     if (track) {
-      track.scrollLeft = keepScroll;
-      if (keepScroll) requestAnimationFrame(() => { track.scrollLeft = keepScroll; });
-      const step = (dir) => track.scrollBy({ left: dir * track.clientWidth * 0.9, behavior: "smooth" });
-      this.shadowRoot.querySelector(".arr.l").addEventListener("click", (ev) => { ev.stopPropagation(); step(-1); });
-      this.shadowRoot.querySelector(".arr.r").addEventListener("click", (ev) => { ev.stopPropagation(); step(1); });
+      const items = [...track.querySelectorAll(".tile")];
+      const prev = this.shadowRoot.querySelector(".arr.l");
+      const next = this.shadowRoot.querySelector(".arr.r");
+      const counter = this.shadowRoot.querySelector(".car-count");
+      const maxScroll = () => Math.max(0, track.scrollWidth - track.clientWidth);
+      // offsetLeft is relative to .track, not to the card/arrow container.
+      const target = (i) => Math.min(maxScroll(), items[i].offsetLeft);
+      const current = () => {
+        if (maxScroll() > 1 && track.scrollLeft >= maxScroll() - 1) return items.length - 1;
+        return items.reduce((best, _, i) =>
+          Math.abs(target(i) - track.scrollLeft) < Math.abs(target(best) - track.scrollLeft) ? i : best, 0);
+      };
+      const update = () => {
+        prev.disabled = track.scrollLeft <= 1;
+        next.disabled = track.scrollLeft >= maxScroll() - 1;
+        counter.textContent = `${current() + 1} / ${items.length}`;
+      };
+      // Restore synchronously after layout; a delayed RAF could overwrite a new swipe.
+      track.scrollLeft = Math.min(keepScroll, maxScroll());
+      const step = (dir) => {
+        const positions = items.map((_, i) => target(i));
+        const left = track.scrollLeft;
+        const destination = dir > 0
+          ? positions.find((x) => x > left + 1) ?? maxScroll()
+          : positions.filter((x) => x < left - 1).pop() ?? 0;
+        // Exact, non-animated targets avoid interrupted smooth scrolls + iOS snap.
+        track.scrollTo({ left: destination, behavior: "instant" });
+        update();
+      };
+      prev.addEventListener("click", (ev) => { ev.stopPropagation(); step(-1); });
+      next.addEventListener("click", (ev) => { ev.stopPropagation(); step(1); });
+      track.addEventListener("scroll", update, { passive: true });
+      this._carouselResize = new ResizeObserver(update);
+      this._carouselResize.observe(track);
+      update();
       track.querySelectorAll(".tile").forEach((t) => {
         const open = (ev) => {
           ev.stopPropagation();
