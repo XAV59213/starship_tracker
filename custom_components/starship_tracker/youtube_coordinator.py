@@ -274,6 +274,9 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, str] | None]):
             >= datetime.fromisoformat(latest["published"])
         ):
             latest = {**videos[0], "channel": self.channel}
+        if latest and videos:
+            # Recent Starship uploads for the per-channel card carousel.
+            latest = {**latest, "videos": [dict(video) for video in videos[:15]]}
         seen = list(
             dict.fromkeys([*self._seen, *(video["video_id"] for video in new)])
         )[-200:]
