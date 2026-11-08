@@ -25,7 +25,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.15.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.15.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -121,6 +121,8 @@ Integration icons and logos live in `custom_components/starship_tracker/brand/` 
 used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
+
+**1.15.1** : exemple YAML corrigé (`carousel_count: 25` au lieu de 10). Si votre carte conserve `carousel_count: 10`, passez-le à 25 pour voir les 21 missions ; une mise à jour ne remplace pas votre configuration. Carrousel mobile : flèches précises (une vignette par clic), masquées aux extrémités ; compteur de position ; position conservée lors des mises à jour.
 
 **1.15.0** : contenu SpaceX en français (option « Traduire le contenu SpaceX en français », activée par défaut si HA est en français) : statuts (Terminé / À venir / En direct), titres (« Starship's Seventh Flight Test » → « 7e vol d'essai Starship », « Starship Flight 15 » → « Vol Starship 15 »), dictionnaire intégré pour le compte à rebours et la chronologie (Décollage, Max Q, MECO, hot-staging, boostback, capture…), description et termes inconnus traduits automatiquement via un service gratuit sans clé (translate.googleapis.com, repli MyMemory) avec cache persistant ; en cas d'échec le texte original reste affiché. Bouton « Texte original » dans le panneau Détails. Attributs `mission_fr`, `mission_status_fr`, `mission_description_fr`, `mission_countdown_fr`, `mission_timeline_fr`. Limite : ces services gratuits ne sont pas garantis (quota / blocage) et la description des vols passés reste en anglais. Quality Scale **Silver** (`quality_scale.yaml`) : réauthentification NewsAPI, reconfiguration, `PARALLEL_UPDATES`, exception traduite du bouton, descriptions des champs, tests HA (config flow 100 %, ~96 % au total) + workflow Tests ; HACS : validation sans `ignore`, description et topics du dépôt.
 
@@ -236,8 +238,9 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.15.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.15.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
+- **1.15.1** — Fixed YAML example (`carousel_count: 25`, previously 10). Existing cards with `carousel_count: 10` must change it to 25 to show all 21 missions; updates preserve user configuration. Mobile carousel: exact one-tile arrow navigation, hidden arrows at the ends, position counter and scroll position preserved across updates.
 - **1.15.0** — French translation of SpaceX content (option, on by default when HA is in French): statuses, deterministic titles, built-in timeline dictionary, free keyless machine translation of the description (Google gtx, MyMemory fallback) with persistent cache and original-text fallback; « Texte original » toggle in the card. Free services are best effort. Quality Scale **Silver** (`quality_scale.yaml`): NewsAPI reauth, reconfigure flow, `PARALLEL_UPDATES`, translated button exception, field descriptions, HA tests (config flow 100 %, ~96 % overall) + Tests workflow; HACS validation without ignores, repo description/topics.
 - **1.14.0** — all Starship flights (21, SN5 → Flight 15) in the carousel and list (`carousel_count` default 25); fixed-size tiles (no more empty tile on mobile); Details panel: video (YouTube embed or ▶ button to the X webcast), flight-plan infographic, collapsible monospace COUNTDOWN and FLIGHT TIMELINE. New next-mission attributes `mission_videos`, `mission_infographic(_mobile)`, `mission_countdown`, `mission_timeline`; past flights load their mission page on demand in the card (6 h cache).
 - **1.13.1** — fix page jumping on the card: re-render only when a Starship entity changes (not on every `hass` update), countdown updated in place, Details image space reserved (16/9), panel state and carousel scroll kept.
