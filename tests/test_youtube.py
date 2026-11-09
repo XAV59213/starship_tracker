@@ -462,3 +462,22 @@ def test_stream_tab_live_without_keyword_is_dropped():
         ]),
     ])
     assert parse_channel_tab(page, "starship", now, streams=True) == []
+
+
+async def test_rss_down_falls_back_to_channel_tabs(hass):
+    """YouTube RSS 404 for every channel must not make the sensor unavailable."""
+    c = coordinator(hass)
+    tab_video = {
+        "video_id": "bbbbbbbbbbb", "title": "Starship tab upload",
+        "url": "https://www.youtube.com/watch?v=bbbbbbbbbbb",
+        "published": "2026-11-08T10:00:00+00:00",
+        "thumbnail": "https://i.ytimg.com/vi/bbbbbbbbbbb/hqdefault.jpg",
+    }
+    upcoming = {**tab_video, "video_id": "ccccccccccc", "title": "Starship upcoming",
+                "published": "2026-11-13T10:00:00+00:00", "live_status": "upcoming"}
+    with patch(FETCH, AsyncMock(side_effect=TimeoutError)), patch(
+        TABS, AsyncMock(return_value=[tab_video, upcoming])
+    ):
+        data = await c._async_update_data()
+    assert data["video_id"] == "bbbbbbbbbbb"
+    assert {v["video_id"] for v in data["videos"]} == {"bbbbbbbbbbb", "ccccccccccc"}
