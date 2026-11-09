@@ -264,6 +264,7 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
             update_interval=timedelta(minutes=10),
         )
         self.language = language
+        self.source = source
         self.channel = channel
         self.keyword = keyword
         scope = hashlib.sha256(f"{channel}:{keyword.casefold()}".encode()).hexdigest()[
@@ -286,12 +287,33 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
             self._latest = saved.get("latest")
             self._live_states = saved.get("live_states", {})
             self._loaded = True
+        session = async_get_clientsession(self.hass)
+        rss_error: Exception | None = None
         try:
-            videos = await async_fetch_feed(
-                async_get_clientsession(self.hass), self.channel, self.keyword
-            )
+            videos = await async_fetch_feed(session, self.channel, self.keyword)
         except (aiohttp.ClientError, TimeoutError, ValueError, ET.ParseError) as err:
-            raise UpdateFailed(translation_domain=DOMAIN, translation_key="youtube_failed", translation_placeholders={"language": self.language, "error": str(err)}) from err
+            # YouTube's RSS endpoint regularly answers 404/500 for every channel.
+            # Fall back to the public channel tabs instead of going unavailable.
+            _LOGGER.debug("YouTube RSS %s: %s", self.channel, err)
+            rss_error = err
+            videos = []
+        # Last 50 Starship videos for the card carousel: RSS plus public channel tabs.
+        # Tabs are best effort while RSS works; they become the source when RSS is down.
+        try:
+            extra = await async_fetch_channel_videos(session, self.channel, self.keyword)
+        except Exception as err:  # noqa: BLE001 - best effort
+            _LOGGER.debug("YouTube tabs %s: %s", self.channel, err)
+            extra = []
+        if rss_error is not None and not extra:
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="youtube_failed", translation_placeholders={"language": self.source, "error": str(rss_error)}) from rss_error
+        if not videos:
+            # Without RSS, published uploads/streams from the tabs feed the sensor and
+            # new-video notifications (upcoming lives are reported by the live event).
+            videos = sorted(
+                (video for video in extra if video.get("live_status") != "upcoming"),
+                key=lambda video: datetime.fromisoformat(video["published"]),
+                reverse=True,
+            )
         new = [
             video for video in reversed(videos) if video["video_id"] not in self._seen
         ]
@@ -300,18 +322,10 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
             not latest
             or datetime.fromisoformat(videos[0]["published"])
             >= datetime.fromisoformat(latest["published"])
+            or rss_error is not None
         ):
             latest = {**videos[0], "channel": self.channel}
         if latest:
-            # Last 50 Starship videos for the card carousel: RSS plus public channel tabs.
-            # Tabs are best effort: any failure must leave the RSS sensor available.
-            try:
-                extra = await async_fetch_channel_videos(
-                    async_get_clientsession(self.hass), self.channel, self.keyword
-                )
-            except Exception as err:  # noqa: BLE001 - best effort, never blocks the RSS sensor
-                _LOGGER.debug("YouTube tabs %s: %s", self.channel, err)
-                extra = []
             latest = {**latest, "videos": merge_videos(videos, extra)}
         live_states = {
             video["video_id"]: video["live_status"]
