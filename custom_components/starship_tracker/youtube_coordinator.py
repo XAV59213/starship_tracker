@@ -264,6 +264,7 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
             update_interval=timedelta(minutes=10),
         )
         self.language = language
+        self.source = source
         self.channel = channel
         self.keyword = keyword
         scope = hashlib.sha256(f"{channel}:{keyword.casefold()}".encode()).hexdigest()[
@@ -304,7 +305,7 @@ class YouTubeCoordinator(DataUpdateCoordinator[dict[str, Any] | None]):
             _LOGGER.debug("YouTube tabs %s: %s", self.channel, err)
             extra = []
         if rss_error is not None and not extra:
-            raise UpdateFailed(translation_domain=DOMAIN, translation_key="youtube_failed", translation_placeholders={"language": self.language, "error": str(rss_error)}) from rss_error
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="youtube_failed", translation_placeholders={"language": self.source, "error": str(rss_error)}) from rss_error
         if not videos:
             # Without RSS, published uploads/streams from the tabs feed the sensor and
             # new-video notifications (upcoming lives are reported by the live event).
