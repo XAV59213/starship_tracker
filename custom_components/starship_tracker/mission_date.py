@@ -65,25 +65,36 @@ _DATE_DMY = re.compile(
 _TIME = re.compile(
     r"\b(?P<hour>\d{1,2}):(?P<minute>\d{2})\s*"
     r"(?P<ampm>a\.?\s*m\.?|p\.?\s*m\.?)"
-    r"(?:\s*(?P<tz>CDT|CST|CT|EDT|EST|ET|PDT|PST|PT|UTC|GMT)\b)?",
+    r"(?:\s*(?P<tz>CDT|CST|CT|EDT|EST|ET|MDT|MST|MT|PDT|PST|PT|AKDT|AKST|AKT|HDT|HST|HT|UTC|GMT)\b)?",
     re.IGNORECASE,
 )
 _WINDOW = re.compile(r"\b(?P<minutes>\d+)\s*-\s*minutes?\b", re.IGNORECASE)
 _TAG = re.compile(r"<[^>]+>")
 
 # CT/CDT/CST désignent l'heure légale de Starbase : zoneinfo choisit CST ou CDT.
+# Construit au chargement du module (hors event loop) pour éviter l'I/O bloquant
+# de la première construction ZoneInfo sur l'event loop.
 _ZONES = {
-    "CT": "America/Chicago",
-    "CST": "America/Chicago",
-    "CDT": "America/Chicago",
-    "ET": "America/New_York",
-    "EST": "America/New_York",
-    "EDT": "America/New_York",
-    "PT": "America/Los_Angeles",
-    "PST": "America/Los_Angeles",
-    "PDT": "America/Los_Angeles",
-    "UTC": "UTC",
-    "GMT": "UTC",
+    "CT": ZoneInfo("America/Chicago"),
+    "CST": ZoneInfo("America/Chicago"),
+    "CDT": ZoneInfo("America/Chicago"),
+    "ET": ZoneInfo("America/New_York"),
+    "EST": ZoneInfo("America/New_York"),
+    "EDT": ZoneInfo("America/New_York"),
+    "MT": ZoneInfo("America/Denver"),
+    "MST": ZoneInfo("America/Denver"),
+    "MDT": ZoneInfo("America/Denver"),
+    "PT": ZoneInfo("America/Los_Angeles"),
+    "PST": ZoneInfo("America/Los_Angeles"),
+    "PDT": ZoneInfo("America/Los_Angeles"),
+    "AKT": ZoneInfo("America/Anchorage"),
+    "AKST": ZoneInfo("America/Anchorage"),
+    "AKDT": ZoneInfo("America/Anchorage"),
+    "HT": ZoneInfo("Pacific/Honolulu"),
+    "HST": ZoneInfo("Pacific/Honolulu"),
+    "HDT": ZoneInfo("Pacific/Honolulu"),
+    "UTC": ZoneInfo("UTC"),
+    "GMT": ZoneInfo("UTC"),
 }
 
 
@@ -249,7 +260,7 @@ def _zoned_time(text: str) -> tuple[int, int, ZoneInfo] | None:
         zone = _ZONES.get(label.upper())
         if zone is None:
             continue
-        found.append((match, hour, minute, ZoneInfo(zone)))
+        found.append((match, hour, minute, zone))
     if not found:
         return None
     window = _WINDOW.search(text)
