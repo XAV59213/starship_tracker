@@ -33,6 +33,10 @@ SCAN_INTERVAL_ALL_LAUNCHES: Final = timedelta(hours=6)
 # Compteurs globaux SpaceX affichés sur https://www.spacex.com/launches
 SPACEX_STATS_URL: Final = "https://content.spacex.com/api/spacex-website/launches-page-stats"
 SCAN_INTERVAL_STATS: Final = timedelta(hours=1)
+# Launch Library 2 (thespacedevs) : numéros du booster et du vaisseau, absents de spacex.com.
+# API gratuite limitée à 15 requêtes/heure : une seule requête par heure.
+LL2_UPCOMING_URL: Final = "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?search=starship&limit=10&mode=detailed"
+SCAN_INTERVAL_LL2: Final = timedelta(hours=1)
 
 CONF_TRANSLATE: Final = "translate_fr"
 

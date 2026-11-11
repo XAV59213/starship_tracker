@@ -43,7 +43,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.27.2**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.28.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -216,6 +216,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.28.0** : la case « Véhicule » affiche le numéro du booster et du vaisseau (ex. Super Heavy B22 · Ship S42), lus sur Launch Library 2 (thespacedevs) une fois par heure ; attributs `booster` et `ship` sur la prochaine mission. EN: booster and ship serials in the Vehicle cell.
+
 **1.27.2** : la page ne remonte plus en haut quand la carte se met à jour (hauteur conservée pendant le rafraîchissement). EN: the page no longer jumps to the top when the card refreshes.
 
 **1.26.1** : capteurs YouTube de nouveau disponibles quand le flux RSS YouTube répond 404 (repli sur les onglets Vidéos/Lives des chaînes). EN: YouTube sensors fall back to channel tabs when YouTube RSS is down.
@@ -370,7 +372,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.27.2**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.28.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 

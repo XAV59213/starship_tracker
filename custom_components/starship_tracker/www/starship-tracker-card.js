@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.27.2";
+const CARD_VERSION = "1.28.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -606,7 +606,7 @@ class StarshipTrackerCard extends HTMLElement {
         <div class="mgrid">
           ${cell("📅", L.date, esc(hasMission ? date : "TBD"))}
           ${hasMission && windowText ? cell("🪟", L.window, esc(windowText)) : ""}
-          ${cell("🚀", L.vehicle, esc(a.vehicle || "Starship") + " · SpaceX")}
+          ${cell("🚀", L.vehicle, a.booster || a.ship ? [a.booster && `Super Heavy ${esc(a.booster)}`, a.ship && `Ship ${esc(a.ship)}`].filter(Boolean).join(" · ") : esc(a.vehicle || "Starship") + " · SpaceX")}
           ${cell("🏗️", L.pad, esc(a.launch_site || "Starbase"))}
           ${cell("📍", L.location, esc(L.place))}
           ${hasMission && sourceLabel ? cell("🔎", L.dateSource, esc(sourceLabel)) : ""}
