@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.26.1";
+const CARD_VERSION = "1.27.2";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -520,8 +520,17 @@ class StarshipTrackerCard extends HTMLElement {
       const t = w.querySelector(".track"); if (t) keepScrolls[w.dataset.car] = t.scrollLeft;
     });
     (this._carouselResizes || []).forEach((r) => r.disconnect()); this._carouselResizes = [];
+    // Rebuilding the DOM briefly empties the card: the page shrinks and the browser
+    // jumps back up. Keep the current height until the new content has laid out.
+    const keepHeight = this.offsetHeight;
+    if (keepHeight) {
+      this.style.minHeight = `${keepHeight}px`;
+      clearTimeout(this._heightTimer);
+      this._heightTimer = setTimeout(() => { this.style.minHeight = ""; }, 2000);
+    }
     this.shadowRoot.innerHTML = `
       <style>
+        :host { display: block; }
         ha-card { padding: 16px; }
         .title { font-size: 1.35em; font-weight: 700; margin-bottom: 6px; }
         .row { line-height: 1.5; }
