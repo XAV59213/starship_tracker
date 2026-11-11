@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 
 from .const import CONF_TRANSLATE, CONF_YOUTUBE_FR, CONF_YOUTUBE_EN, CONF_YOUTUBE_KEYWORD, CONF_YOUTUBE_FR2, CONF_YOUTUBE_STARBASE_FR, CONF_YOUTUBE_STARBASE_FILTER, DOMAIN
+from .authorizations_coordinator import LaunchAuthorizationsCoordinator
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator
 from .stats_coordinator import SpaceXStatsCoordinator
@@ -31,6 +32,7 @@ class StarshipData:
     live: StarshipLiveCoordinator
     stats: SpaceXStatsCoordinator
     youtube: dict[str, YouTubeCoordinator]
+    authorizations: LaunchAuthorizationsCoordinator
 
 
 type StarshipConfigEntry = ConfigEntry[StarshipData]
@@ -60,6 +62,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> 
     # Compteurs SpaceX optionnels : un échec ne bloque pas l'intégration.
     stats = SpaceXStatsCoordinator(hass)
     await stats.async_refresh()
+    # Autorisations avant décollage (FAA, NGA, Cameron County) : best effort, jamais bloquant.
+    authorizations = LaunchAuthorizationsCoordinator(hass)
+    await authorizations.async_refresh()
     youtube: dict[str, YouTubeCoordinator] = {}
     for language, key in (("fr", CONF_YOUTUBE_FR), ("en", CONF_YOUTUBE_EN)):
         if channel := entry.options.get(key, entry.data.get(key, "")):
@@ -78,7 +83,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: StarshipConfigEntry) -> 
             coordinator = YouTubeCoordinator(hass, entry, "fr", channel, keyword, source="fr_starbase")
             await coordinator.async_refresh()
             youtube["fr_starbase"] = coordinator
-    entry.runtime_data = StarshipData(news=news, live=live, stats=stats, youtube=youtube)
+    entry.runtime_data = StarshipData(news=news, live=live, stats=stats, youtube=youtube, authorizations=authorizations)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

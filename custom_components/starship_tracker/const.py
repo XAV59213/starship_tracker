@@ -37,6 +37,8 @@ SCAN_INTERVAL_STATS: Final = timedelta(hours=1)
 # API gratuite limitée à 15 requêtes/heure : une seule requête par heure.
 LL2_UPCOMING_URL: Final = "https://ll.thespacedevs.com/2.3.0/launches/upcoming/?search=starship&limit=10&mode=detailed"
 SCAN_INTERVAL_LL2: Final = timedelta(hours=1)
+# Autorisations avant décollage (FAA NOTAM, NGA, Cameron County) : toutes les 30 min au plus.
+SCAN_INTERVAL_AUTHORIZATIONS: Final = timedelta(minutes=30)
 
 CONF_TRANSLATE: Final = "translate_fr"
 

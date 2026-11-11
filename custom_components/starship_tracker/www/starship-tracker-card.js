@@ -1,5 +1,5 @@
 /* Starship Tracker card — livrée avec l'intégration starship_tracker (aucune install séparée). */
-const CARD_VERSION = "1.28.0";
+const CARD_VERSION = "1.29.0";
 
 const KEYS = {
   live: ["binary_sensor", "starship_live", "binary_sensor.starship_tracker_starship_live"],
@@ -14,6 +14,7 @@ const KEYS = {
   total_launches: ["sensor", "total_launches", "sensor.starship_tracker_spacex_completed_missions"],
   total_landings: ["sensor", "total_landings", "sensor.starship_tracker_spacex_total_landings"],
   total_reflights: ["sensor", "total_reflights", "sensor.starship_tracker_spacex_total_reflights"],
+  authorizations: ["sensor", "launch_authorizations", "sensor.starship_tracker_launch_authorizations"],
 };
 
 const esc = (v) =>
@@ -82,6 +83,7 @@ const DEFAULTS = {
   show_details: true, show_details_button: true, show_countdown: true, show_live: true, show_videos: true,
   show_missions: true, missions_count: 3, show_upcoming: true, show_last: true,
   show_youtube: true, youtube_carousel_lang: "both", show_carousel_spacex: true, show_carousel_youtube_fr: true, show_carousel_youtube_fr_starbase: true, show_carousel_youtube_en: true, show_carousel_live: true, youtube_live_badges_en: true, youtube_count_youtube_fr: 0, youtube_count_youtube_fr_starbase: 0, youtube_count_youtube_en: 0, show_news: true, news_count: 5, show_stats: true, show_carousel: true, carousel_count: 25,
+  show_authorizations: true,
 };
 
 const LABELS = {
@@ -104,6 +106,8 @@ const LABELS = {
   show_news: "Actualités / News",
   news_count: "Nb actualités / News count",
   show_stats: "Compteurs SpaceX / SpaceX counters",
+  show_authorizations: "Autorisations avant décollage / Pre-launch approvals",
+  authorizations: "Autorisations / Approvals",
   show_carousel: "Carrousel d'images / Image carousel",
   show_carousel_spacex: "Carrousel SpaceX / SpaceX carousel",
   show_carousel_youtube_fr: "Carrousel UFOTINIK (FR) / UFOTINIK carousel",
@@ -135,7 +139,7 @@ class StarshipTrackerCard extends HTMLElement {
         { name: "title", selector: { text: {} } },
         { type: "expandable", name: "", title: "Affichage / Display", flatten: true, schema: [
           { type: "grid", name: "", flatten: true, schema: [
-            b("show_details"), b("show_details_button"), b("show_countdown"), b("show_live"), b("show_videos"), b("show_youtube"),
+            b("show_details"), b("show_details_button"), b("show_countdown"), b("show_authorizations"), b("show_live"), b("show_videos"), b("show_youtube"),
           ] },
         ] },
         { type: "expandable", name: "", title: "Compteurs SpaceX / SpaceX counters", flatten: true, schema: [b("show_stats")] },
@@ -163,6 +167,7 @@ class StarshipTrackerCard extends HTMLElement {
           ent("missions", "sensor"), ent("news", "sensor"), ent("live", "binary_sensor"),
           ent("youtube_fr", "sensor"), ent("youtube_en", "sensor"), ent("youtube_fr_starbase", "sensor"),
           ent("total_launches", "sensor"), ent("total_landings", "sensor"), ent("total_reflights", "sensor"),
+          ent("authorizations", "sensor"),
         ] },
       ],
       computeLabel: (s) => LABELS[s.name] || s.name,
@@ -282,6 +287,73 @@ class StarshipTrackerCard extends HTMLElement {
     return `T- ${d}j ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m`;
   }
 
+  // Bloc « Autorisations avant décollage » (sensor launch_authorizations), FR/EN.
+  _authorizationsHtml(lang) {
+    const st = this._state("authorizations");
+    const items = Array.isArray(st?.attributes?.items) ? st.attributes.items : [];
+    if (!st || ["unknown", "unavailable"].includes(st.state) || !items.length) return "";
+    const fr = lang === "fr";
+    const A = fr
+      ? { title: "Autorisations avant décollage", ready: "Prêt", partial: "Partiel", pending: "En attente",
+          faa_license: "Licence de lancement FAA", notam: "NOTAM FAA (zone aérienne)", navigation: "Avis aux navigateurs (NGA)",
+          road_closure: "Fermeture Highway 4 / plage", down: "Source indisponible", lic: "Non publiée en ligne · à vérifier sur la page FAA",
+          upd: "page mise à jour le", nonotam: "Aucun NOTAM « opérations spatiales » à Starbase pour l'instant",
+          nonav: "Aucun avis « rocket launching » au large du Texas", noroad: "Aucune fermeture annoncée", possible: "Possible le",
+          checked: "Vérifié", src: "Sources : FAA, NGA, comté de Cameron" }
+      : { title: "Pre-launch approvals", ready: "Ready", partial: "Partial", pending: "Pending",
+          faa_license: "FAA launch license", notam: "FAA NOTAM (airspace)", navigation: "Navigational warnings (NGA)",
+          road_closure: "Highway 4 / beach closure", down: "Source unavailable", lic: "Not published online · check the FAA page",
+          upd: "page updated", nonotam: "No Starbase space operations NOTAM yet",
+          nonav: "No rocket launching warning off Texas", noroad: "No closure announced", possible: "Possible on",
+          checked: "Checked", src: "Sources: FAA, NGA, Cameron County" };
+    const day = (d) => {
+      const t = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(String(d || "")) ? `${d}T12:00:00` : d);
+      return t ? new Date(t).toLocaleDateString(lang, { day: "numeric", month: "short" }) : "";
+    };
+    const time = (d) => { const t = Date.parse(d); return t ? new Date(t).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" }) : ""; };
+    const more = (list) => (list.length > 1 ? ` (+${list.length - 1})` : "");
+    const detail = (it) => {
+      if (it.status === "unknown" && it.key !== "faa_license") return A.down;
+      if (it.key === "faa_license") return it.page_updated ? `${A.lic} (${A.upd} ${day(it.page_updated)})` : A.lic;
+      if (it.key === "notam") {
+        const list = Array.isArray(it.notams) ? it.notams : [];
+        if (!list.length) return A.nonotam;
+        const n = list[0];
+        const when = n.start ? `${day(n.start)} ${time(n.start)}${n.end ? `–${time(n.end)}` : ""}` : day(n.date);
+        return `NOTAM ${n.notam_id}${more(list)}${when ? ` · ${when}` : ""}`;
+      }
+      if (it.key === "navigation") {
+        const list = Array.isArray(it.warnings) ? it.warnings : [];
+        return list.length ? `${list[0].id}${more(list)}` : A.nonav;
+      }
+      if (it.key === "road_closure") {
+        const list = Array.isArray(it.closures) ? it.closures : [];
+        const sched = list.filter((c) => c.scheduled);
+        const c = sched[0] || list[0];
+        if (!c) return A.noroad;
+        return `${sched.length ? "" : A.possible + " "}${day(c.date)}${c.time ? ` · ${c.time}` : ""}`;
+      }
+      return it.detail || "";
+    };
+    const dot = { ok: "✅", pending: "⏳" };
+    const rows = items.map((it) => {
+      const href = safeUrl(it.url);
+      const inner = `<span class="ad">${dot[it.status] || "❔"}</span>
+          <div><div class="al">${esc(A[it.key] || it.label || it.key)}</div><div class="adt">${esc(detail(it))}</div></div>
+          <span class="ago">${href ? "↗" : ""}</span>`;
+      return href ? `<a class="arow ${esc(it.status)}" href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>`
+        : `<div class="arow ${esc(it.status)}">${inner}</div>`;
+    }).join("");
+    const ok = items.filter((it) => it.status === "ok").length;
+    const overall = ["ready", "partial", "pending"].includes(st.state) ? st.state : "pending";
+    const checked = time(st.attributes.last_check);
+    return `<div class="auth">
+        <div class="ah"><span>🛂 ${esc(A.title)}</span><span class="chip ${overall}">${esc(A[overall])} · ${ok}/${items.length}</span></div>
+        ${rows}
+        <div class="afoot">${esc(A.src)}${checked ? ` · ${esc(A.checked)} ${esc(checked)}` : ""}</div>
+      </div>`;
+  }
+
   _render() {
     if (!this._hass || !this.shadowRoot) return;
     const lang = (this._config.lang || this._hass.locale?.language || this._hass.language || "en").startsWith("fr") ? "fr" : "en";
@@ -373,6 +445,8 @@ class StarshipTrackerCard extends HTMLElement {
           ${[["total_launches", L.s1], ["total_landings", L.s2], ["total_reflights", L.s3]]
             .map(([k, l]) => `<div class="stat"><div class="sv">${esc(statVal(k))}</div><div class="sl">${esc(l)}</div></div>`).join("")}
         </a>` : "";
+
+    const authHtml = C.show_authorizations !== false ? this._authorizationsHtml(lang) : "";
 
     const statusText0 = status?.state && !["unknown", "unavailable"].includes(status.state) ? status.state : (a.mission_status || "—");
     const statusText = fr ? (a.mission_status_fr || trStatus(statusText0)) : statusText0;
@@ -598,6 +672,16 @@ class StarshipTrackerCard extends HTMLElement {
         .car-count { text-align: center; font-size: .8em; color: var(--secondary-text-color); padding-top: 4px; font-variant-numeric: tabular-nums; }
         .arr.l { left: 4px; } .arr.r { right: 4px; }
         .sl { font-size: 0.8em; color: var(--secondary-text-color); text-transform: uppercase; }
+        .auth { margin: 14px 0 4px; padding: 10px 12px; border-radius: 10px; background: var(--secondary-background-color); border: 1px solid var(--divider-color); }
+        .auth .ah { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; font-weight: 700; }
+        .auth .chip.ready { background: rgba(46,125,50,.2); border-color: #2e7d32; }
+        .auth .chip.partial { background: rgba(249,168,37,.2); border-color: #f9a825; }
+        .arow { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 7px 0; border-top: 1px solid var(--divider-color); color: inherit; text-decoration: none; }
+        .arow .ad { font-size: 1.1em; text-align: center; }
+        .arow .al { font-weight: 600; }
+        .arow .adt { font-size: .82em; color: var(--secondary-text-color); }
+        .arow .ago { color: var(--primary-color); font-size: .9em; }
+        .afoot { font-size: .72em; color: var(--secondary-text-color); padding-top: 6px; border-top: 1px solid var(--divider-color); }
       </style>
       <ha-card>
         <div class="title">${C.title ? esc(C.title) : `${hasMission ? esc(T(next.state)) : "TBD"} (SpaceX)`}</div>
@@ -612,6 +696,7 @@ class StarshipTrackerCard extends HTMLElement {
           ${hasMission && sourceLabel ? cell("🔎", L.dateSource, esc(sourceLabel)) : ""}
         </div>` : ""}
         ${hasMission && C.show_details ? `<div class="mlinks"><a class="mbtn" href="${esc(url)}" target="_blank" rel="noopener">ℹ️ ${L.details}</a>${C.show_videos ? `<a class="mbtn" href="${esc(vurl)}" target="_blank" rel="noopener">${L.video}</a>` : ""}</div>` : ""}
+        ${authHtml}
         ${spacexCarHtml}
         ${showBtn ? `<button class="dbtn" type="button">${this._open ? L.hide : "ℹ️ " + L.details}</button>` : ""}
         ${panel}

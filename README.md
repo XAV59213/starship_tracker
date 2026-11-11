@@ -43,7 +43,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.28.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.29.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -216,6 +216,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.29.0** : nouveau bloc « 🛂 Autorisations avant décollage » sous le bloc mission (option `show_authorizations`) et capteur `sensor.starship_tracker_launch_authorizations` (Prêt / Partiel / En attente, liste en attribut `items`) : NOTAM « opérations spatiales » de Starbase (FAA TFR, toutes les 30 min), avis aux navigateurs NGA (NAVAREA IV), fermetures Highway 4 / plage du comté de Cameron, et licence FAA « à vérifier » avec lien (non publiée en ligne de façon lisible). Sources publiques, sans clé, jamais bloquantes. EN: new pre-launch approvals block (FAA NOTAM, NGA warnings, Highway 4 closures, FAA license link) and `launch_authorizations` sensor.
+
 **1.28.0** : la case « Véhicule » affiche le numéro du booster et du vaisseau (ex. Super Heavy B22 · Ship S42), lus sur Launch Library 2 (thespacedevs) une fois par heure ; attributs `booster` et `ship` sur la prochaine mission. EN: booster and ship serials in the Vehicle cell.
 
 **1.27.2** : la page ne remonte plus en haut quand la carte se met à jour (hauteur conservée pendant le rafraîchissement). EN: the page no longer jumps to the top when the card refreshes.
@@ -372,7 +374,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.28.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.29.0**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 

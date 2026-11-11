@@ -52,6 +52,14 @@
       },
       "youtube_fr_starbase": {
         "default": "mdi:youtube"
+      },
+      "launch_authorizations": {
+        "default": "mdi:clipboard-check-outline",
+        "state": {
+          "ready": "mdi:clipboard-check",
+          "partial": "mdi:clipboard-clock-outline",
+          "pending": "mdi:clipboard-text-clock-outline"
+        }
       }
     }
   }

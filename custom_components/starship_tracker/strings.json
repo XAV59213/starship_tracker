@@ -115,6 +115,14 @@
       },
       "youtube_fr_starbase": {
         "name": "YouTube StarBase FR"
+      },
+      "launch_authorizations": {
+        "name": "Launch authorizations",
+        "state": {
+          "ready": "Ready",
+          "partial": "Partial",
+          "pending": "Pending"
+        }
       }
     },
     "button": {

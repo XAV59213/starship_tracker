@@ -161,3 +161,32 @@ card.hass = {language: 'fr', states: {'sensor.starship_tracker_youtube_fr': vide
 assert.match(slice('youtube_fr'), /badge youtube">FR</);
 assert.doesNotMatch(slice('youtube_fr'), /À venir|En direct|Terminé/);
 console.log('PASS: UFOTINIK and StarBase FR live badges, datetime, EN labels, NASASpaceflight unchanged');
+
+// Pre-launch approvals block (sensor.starship_tracker_launch_authorizations).
+const auth = {state: 'partial', last_updated: 'a1', attributes: {ok_count: 2, total: 4, last_check: '2026-11-11T17:30:00+00:00', items: [
+  {key: 'faa_license', label: 'FAA launch license', status: 'unknown', url: 'https://www.faa.gov/space/stakeholder_engagement/spacex_starship', page_updated: '2026-11-10'},
+  {key: 'notam', label: 'FAA NOTAM / TFR', status: 'ok', url: 'https://tfr.faa.gov/tfr3/?page=detail_6_7129',
+   notams: [{notam_id: '6/7129', date: '2026-11-13', start: '2026-11-13T22:30:00+00:00', end: '2026-11-14T00:40:00+00:00'}, {notam_id: '6/7130', date: '2026-11-14'}]},
+  {key: 'navigation', label: 'Navigational warnings', status: 'pending', url: 'javascript:alert(1)', warnings: []},
+  {key: 'road_closure', label: 'Highway 4 / beach closure', status: 'ok', url: 'https://www.cameroncountytx.gov/spacex/',
+   closures: [{date: '2026-11-13', time: '12:00 p.m. to 10:00 p.m.', scheduled: true}]},
+]}};
+const authBlock = () => (html().match(/<div class="auth">[\s\S]*?<div class="afoot">[\s\S]*?<\/div>/) || [''])[0];
+card.setConfig({});
+card.hass = {language: 'fr', states: {'sensor.starship_tracker_launch_authorizations': auth}};
+assert.match(authBlock(), /🛂 Autorisations avant décollage/);
+assert.match(authBlock(), /Partiel · 2\/4/);
+assert.match(authBlock(), /✅[\s\S]*NOTAM FAA[\s\S]*NOTAM 6\/7129 \(\+1\) · 13 nov/);
+assert.match(authBlock(), /❔[\s\S]*Licence de lancement FAA[\s\S]*à vérifier/);
+assert.match(authBlock(), /⏳[\s\S]*Aucun avis « rocket launching »/);
+assert.match(authBlock(), /href="https:\/\/tfr\.faa\.gov\/tfr3\/\?page=detail_6_7129"/);
+assert.doesNotMatch(authBlock(), /javascript:/);
+card.hass = {language: 'en', states: {'sensor.starship_tracker_launch_authorizations': {...auth, last_updated: 'a2'}}};
+assert.match(authBlock(), /🛂 Pre-launch approvals/);
+assert.match(authBlock(), /Highway 4 \/ beach closure[\s\S]*Nov 13 · 12:00 p\.m\./);
+card.setConfig({show_authorizations: false});
+assert.doesNotMatch(html(), /class="auth"/);
+card.setConfig({});
+card.hass = {language: 'fr', states: {'sensor.starship_tracker_launch_authorizations': {state: 'unavailable', attributes: {}}}};
+assert.doesNotMatch(html(), /class="auth"/);
+console.log('PASS: pre-launch approvals block FR/EN, links, toggle and unavailable sensor');
