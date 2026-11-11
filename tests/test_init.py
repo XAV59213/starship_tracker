@@ -34,6 +34,7 @@ def _patches(tiles=None, news=None):
         patch(f"{P}.live_coordinator.async_fetch_mission", AsyncMock(return_value=PAGE)),
         patch(f"{P}.coordinator.async_fetch_news", news or AsyncMock(return_value=[{"title": "a", "link": "https://x", "published": None}])),
         patch(f"{P}.stats_coordinator.SpaceXStatsCoordinator._async_update_data", AsyncMock(return_value={"total_launches": 1, "total_landings": 2, "total_reflights": 3})),
+        patch(f"{P}.authorizations_coordinator.LaunchAuthorizationsCoordinator._get", AsyncMock(side_effect=TimeoutError)),
     )
 
 
@@ -58,6 +59,11 @@ async def test_setup_unload(hass: HomeAssistant) -> None:
     nxt = next(s for s in states if s.attributes.get("link") == "starship-flight-15")
     assert nxt.attributes["mission_image"] == "https://content.spacex.com/cms-assets/f15.png"
     assert nxt.attributes["mission_timeline"] == [["00:00:00", "Liftoff"]]
+    # Sources d'autorisation injoignables : capteur présent, éléments « unknown », NGA omis.
+    auth = hass.states.get("sensor.starship_tracker_launch_authorizations")
+    assert auth is not None and auth.state == "pending"
+    assert [i["key"] for i in auth.attributes["items"]] == ["faa_license", "notam", "road_closure"]
+    assert {i["status"] for i in auth.attributes["items"]} == {"unknown"}
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert entry.state is ConfigEntryState.NOT_LOADED
 

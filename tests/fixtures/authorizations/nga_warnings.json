@@ -1,0 +1,37 @@
+{
+ "broadcast-warn": [
+  {
+   "msgYear": 2026,
+   "msgNumber": 1187,
+   "navArea": "4",
+   "subregion": "27",
+   "status": "A",
+   "issueDate": "111530Z NOV 2026",
+   "authority": "NAVAREA IV",
+   "text": "GULF OF AMERICA.\nTEXAS.\n1. HAZARDOUS OPERATIONS, ROCKET LAUNCHING\n   132230Z TO 140040Z NOV, ALTERNATE\n   142230Z TO 150040Z NOV IN AREA BOUND BY\n   25-56.00N 097-10.00W, 26-04.00N 097-07.00W,\n   26-06.00N 096-55.00W, 25-56.00N 096-55.00W.\n2. CANCEL THIS MSG 150140Z NOV 26.\n",
+   "cancelDate": null
+  },
+  {
+   "msgYear": 2026,
+   "msgNumber": 1180,
+   "navArea": "4",
+   "subregion": "11",
+   "status": "A",
+   "issueDate": "101200Z NOV 2026",
+   "authority": "NAVAREA IV",
+   "text": "NORTH ATLANTIC.\nFLORIDA.\n1. HAZARDOUS OPERATIONS, ROCKET LAUNCHING\n   131900Z TO 132100Z NOV.\n",
+   "cancelDate": null
+  },
+  {
+   "msgYear": 2026,
+   "msgNumber": 1100,
+   "navArea": "4",
+   "subregion": "27",
+   "status": "A",
+   "issueDate": "011200Z NOV 2026",
+   "authority": "NAVAREA IV",
+   "text": "GULF OF AMERICA.\nTEXAS.\nDERELICT VESSEL ADRIFT.\n",
+   "cancelDate": null
+  }
+ ]
+}

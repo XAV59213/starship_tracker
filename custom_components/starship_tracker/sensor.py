@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from . import StarshipConfigEntry
 from .const import DOMAIN, LIVE_URL
+from .authorizations_coordinator import LaunchAuthorizationsCoordinator
 from .coordinator import StarshipNewsCoordinator
 from .live_coordinator import StarshipLiveCoordinator, launch_datetime
 from .stats_coordinator import SpaceXStatsCoordinator
@@ -55,6 +56,7 @@ async def async_setup_entry(
                 SpaceXStatSensor(entry.runtime_data.stats, entry, key)
                 for key in ("total_launches", "total_landings", "total_reflights")
             ),
+            LaunchAuthorizationsSensor(entry.runtime_data.authorizations, entry),
         ]
     )
 
@@ -321,3 +323,28 @@ class YouTubeSensor(CoordinatorEntity[YouTubeCoordinator], SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {"channel": self.coordinator.channel, **(self.coordinator.data or {})}
+
+
+class LaunchAuthorizationsSensor(CoordinatorEntity[LaunchAuthorizationsCoordinator], SensorEntity):
+    """Récapitulatif des autorisations avant décollage (FAA, NOTAM, avis maritimes, fermetures)."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "launch_authorizations"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["ready", "partial", "pending"]
+
+    def __init__(self, coordinator: LaunchAuthorizationsCoordinator, entry: StarshipConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_launch_authorizations"
+        # Suggestion initiale seulement ; le registre conserve les renommages.
+        self.entity_id = "sensor.starship_tracker_launch_authorizations"
+        self._attr_device_info = _device_info(entry)
+
+    @property
+    def native_value(self) -> str | None:
+        return (self.coordinator.data or {}).get("overall")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        return {k: data.get(k) for k in ("ok_count", "total", "items", "last_check")}

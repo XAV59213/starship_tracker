@@ -37,4 +37,8 @@ async def async_get_config_entry_diagnostics(
             "last_update_success": data.stats.last_update_success,
             "data": data.stats.data,
         },
+        "authorizations": {
+            "last_update_success": data.authorizations.last_update_success,
+            "data": data.authorizations.data,
+        },
     }

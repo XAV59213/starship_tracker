@@ -1,0 +1,68 @@
+[
+ {
+  "notam_id": "6/7129",
+  "facility": "ZHU",
+  "state": "TX",
+  "type": "SPACE OPERATIONS",
+  "description": "STARBASE, TX, Friday, November 13, 2026 through Friday, November 13, 2026 Local",
+  "mod_date": "11/11/2026 16:50:00",
+  "mod_abs_time": "202611111650",
+  "is_new": "Y",
+  "gid": "6/7129"
+ },
+ {
+  "notam_id": "6/7130",
+  "facility": "ZHU",
+  "state": "TX",
+  "type": "SPACE OPERATIONS",
+  "description": "STARBASE, TX, Saturday, November 14, 2026 through Saturday, November 14, 2026 Local",
+  "mod_date": "11/11/2026 16:50:00",
+  "mod_abs_time": "202611111650",
+  "is_new": "Y",
+  "gid": "6/7130"
+ },
+ {
+  "notam_id": "6/7114",
+  "facility": "ZJX",
+  "state": "FL",
+  "type": "SPACE OPERATIONS",
+  "description": "Cape Canaveral, FL, Sunday, November 15, 2026 Local",
+  "mod_date": "11/11/2026 15:26:00",
+  "mod_abs_time": "202611111526",
+  "is_new": "Y",
+  "gid": "6/7114"
+ },
+ {
+  "notam_id": "6/7108",
+  "facility": "ZME",
+  "state": "MS",
+  "type": "HAZARDS",
+  "description": "7NM E OF OXFORD, MS, Thursday, November 12, 2026 through Saturday, November 14, 2026 UTC",
+  "mod_date": "11/11/2026 14:32:00",
+  "mod_abs_time": "202611111432",
+  "is_new": "Y",
+  "gid": "6/7108"
+ },
+ {
+  "notam_id": "6/7107",
+  "facility": "ZME",
+  "state": "MS",
+  "type": "HAZARDS",
+  "description": "8NM NE OF OXFORD, MS, Thursday, November 12, 2026 through Saturday, November 14, 2026 UTC",
+  "mod_date": "11/11/2026 14:32:00",
+  "mod_abs_time": "202611111432",
+  "is_new": "Y",
+  "gid": "6/7107"
+ },
+ {
+  "notam_id": "6/7129",
+  "facility": "ZHU",
+  "state": "TX",
+  "type": "SPACE OPERATIONS",
+  "description": "STARBASE, TX, Friday, November 13, 2026 through Friday, November 13, 2026 Local",
+  "mod_date": "11/11/2026 16:50:00",
+  "mod_abs_time": "202611111650",
+  "is_new": "Y",
+  "gid": "6/7129"
+ }
+]
