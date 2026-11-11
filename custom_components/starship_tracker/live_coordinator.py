@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -22,8 +23,10 @@ from .const import (
     EVENT_LIVE_STARTED,
     LAUNCH_SOON_WINDOW,
     LIVE_URL,
+    LL2_UPCOMING_URL,
     SCAN_INTERVAL_ALL_LAUNCHES,
     SCAN_INTERVAL_LIVE,
+    SCAN_INTERVAL_LL2,
     SCAN_INTERVAL_MISSION_PAGE,
     SPACEX_ALL_TILES_URL,
     SPACEX_LAUNCH_URL,
@@ -196,6 +199,46 @@ async def async_fetch_mission(session: aiohttp.ClientSession, link: str) -> dict
     return data
 
 
+_FLIGHT_NUMBER = re.compile(r"\bFlight\s+(\d+)\b", re.IGNORECASE)
+
+
+def flight_number(name: Any) -> int | None:
+    """« Starship Flight 15 » -> 15."""
+    match = _FLIGHT_NUMBER.search(str(name or ""))
+    return int(match.group(1)) if match else None
+
+
+def _serial(value: Any, prefix: str) -> str | None:
+    """« Booster 22 » -> B22, « S42 » / « Ship 42 » -> S42."""
+    match = re.search(r"(\d+)", str(value or ""))
+    return f"{prefix}{match.group(1)}" if match else None
+
+
+def parse_ll2_vehicles(data: Any) -> dict[int, dict[str, str]]:
+    """Numéros booster/vaisseau par numéro de vol, depuis Launch Library 2."""
+    found: dict[int, dict[str, str]] = {}
+    results = data.get("results") if isinstance(data, dict) else None
+    for launch in results if isinstance(results, list) else []:
+        if not isinstance(launch, dict) or (number := flight_number(launch.get("name"))) is None:
+            continue
+        rocket = launch.get("rocket") or {}
+        serials: dict[str, str] = {}
+        for stage in rocket.get("launcher_stage") or []:
+            launcher = (stage or {}).get("launcher") or {}
+            if booster := _serial(launcher.get("serial_number"), "B"):
+                serials["booster"] = booster
+                break
+        stages = rocket.get("spacecraft_stage") or []
+        for stage in stages if isinstance(stages, list) else [stages]:
+            craft = (stage or {}).get("spacecraft") or {}
+            if ship := _serial(craft.get("serial_number") or craft.get("name"), "S"):
+                serials["ship"] = ship
+                break
+        if serials:
+            found[number] = serials
+    return found
+
+
 async def async_fetch_live(session: aiohttp.ClientSession) -> LiveStatus:
     """Lit les tuiles « upcoming » du site spacex.com."""
     return _parse(await async_fetch_tiles(session, SPACEX_TILES_URL))
@@ -219,6 +262,9 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         self._mission_cache: dict[str, tuple[datetime, ParsedLaunch | None]] = {}
         # link -> détails (image, description, liens) issus de la même page mission
         self._details_cache: dict[str, dict[str, Any]] = {}
+        # numéro de vol -> {"booster": "B22", "ship": "S42"} (Launch Library 2, 1 requête/h)
+        self._vehicles: dict[int, dict[str, str]] = {}
+        self._vehicles_checked: datetime | None = None
 
     async def _async_update_data(self) -> LiveStatus:
         upcoming: list[dict[str, Any]] | None = None
@@ -242,6 +288,10 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
         status.last_flight = _last_flight(self._all_starship or [])
         status.missions = _missions(combined, schedules)
         await self._async_add_details(status.next_mission)
+        await self._async_refresh_vehicles()
+        for m in [*(status.missions or []), *([status.next_mission] if status.next_mission else [])]:
+            if (number := flight_number(m.get("mission"))) in self._vehicles:
+                m.update(self._vehicles[number])
         if self._translator is not None and status.next_mission:
             try:
                 status.next_mission.update(await async_translate_mission(self._translator, status.next_mission))
@@ -334,6 +384,22 @@ class StarshipLiveCoordinator(DataUpdateCoordinator[LiveStatus]):
             _LOGGER.debug("Flux /launches complet indisponible : %s", err)
             return
         self._all_starship = [t for t in tiles if _is_starship(t)]
+
+    async def _async_refresh_vehicles(self) -> None:
+        """Numéros booster/vaisseau (best effort, jamais bloquant)."""
+        now = dt_util.utcnow()
+        if self._vehicles_checked and now - self._vehicles_checked < SCAN_INTERVAL_LL2:
+            return
+        self._vehicles_checked = now
+        try:
+            async with asyncio.timeout(20):
+                async with self._session.get(LL2_UPCOMING_URL) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json(content_type=None)
+            # On garde les numéros déjà connus (vols passés sortis de la liste « upcoming »).
+            self._vehicles.update(parse_ll2_vehicles(data))
+        except Exception as err:  # noqa: BLE001 - source complémentaire
+            _LOGGER.debug("Launch Library 2 indisponible : %s", err)
 
     def _fire_transition(self, status: LiveStatus) -> None:
         """Déclenche un événement HA quand le live commence ou se termine."""
