@@ -22,13 +22,6 @@
 
 📖 Documentation complète : [Wiki](https://github.com/XAV59213/starship_tracker/wiki)
 
-## Via HACS (recommandé)
-
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=XAV59213&repository=starship_tracker&category=integration)
-
-[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=starship_tracker)
-
-
 Intégration Home Assistant (HACS) qui expose :
 
 - **Starship en direct** (*Starship live*, `binary_sensor`) : `on` quand une mission Starship est en direct sur spacex.com, `off` sinon. Attributs : `url` (page de la mission, où se trouve le live), `vehicle_url`, `mission`, `mission_status`, `launch_date`, `launch_site`, `last_check`. Vérifié toutes les 5 minutes, sans clé.
@@ -46,6 +39,18 @@ Intégration Home Assistant (HACS) qui expose :
 Version actuelle : **1.29.0**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
+
+### Via HACS (recommandé)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=XAV59213&repository=starship_tracker&category=integration)
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=starship_tracker)
+
+1. HACS → recherchez **Starship Tracker** → **Télécharger**.
+2. Redémarrer Home Assistant.
+3. Paramètres → Appareils et services → *Ajouter une intégration* → **Starship Tracker**.
+
+### Dépôt personnalisé (secours)
 
 1. HACS → Intégrations → menu ⋮ → *Dépôts personnalisés* → ajouter `https://github.com/XAV59213/starship_tracker` (catégorie *Intégration*).
 2. Installer **Starship Tracker**, puis redémarrer Home Assistant.
@@ -415,6 +420,6 @@ Copy [`docs/youtube-notifications.yaml`](docs/youtube-notifications.yaml) into a
 - **Starship missions** (`sensor`): number of Starship flights on <https://www.spacex.com/launches>; attributes `past` (latest 10), `upcoming`, `past_count`, `upcoming_count` — each with `mission`, `launch_date`, `launch_time`, `launch_site`, `mission_status`, `url`, `video_url` (clickable live / replay webcast), `is_live`, `date_source`, `launch_window_minutes`.
 - **Starship mission status** (`sensor`): `live` during a stream, otherwise SpaceX `missionStatus` of the next mission.
 - Events `starship_tracker_live_started` / `starship_tracker_live_ended`, and `starship_tracker_launch_soon` (once, within 1 h of launch).
-- Install: HACS → custom repository `https://github.com/XAV59213/starship_tracker` (Integration), then add **Starship Tracker** and paste a NewsAPI key (changeable via *Configure*).
+- Install: search **Starship Tracker** in HACS (default catalog), download, restart Home Assistant, then add the integration and paste a NewsAPI key (changeable via *Configure*). Fallback: add the custom repository `https://github.com/XAV59213/starship_tracker` (Integration).
 - Custom card bundled with the integration: `type: custom:starship-tracker-card` — shows upcoming missions and latest flights with a clickable **▶ Video** link (`show_missions`, `missions_count`).
 - Example native Lovelace card: `docs/lovelace-card.yaml` (see section above). Brand icons: `custom_components/starship_tracker/brand/`.
