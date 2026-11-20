@@ -38,7 +38,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.29.1**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.29.2**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -223,6 +223,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.29.2** : bouton « Discuter sur Forum Domotique » en haut du README. EN: Forum Domotique discussion button added to the README.
+
 **1.29.1** : la section Installation met en avant l’installation directe depuis la recherche HACS (catalogue par défaut), le dépôt personnalisé reste en secours. EN: install section now leads with HACS search (default catalog).
 
 **1.29.0** : nouveau bloc « 🛂 Autorisations avant décollage » sous le bloc mission (option `show_authorizations`) et capteur `sensor.starship_tracker_launch_authorizations` (Prêt / Partiel / En attente, liste en attribut `items`) : NOTAM « opérations spatiales » de Starbase (FAA TFR, toutes les 30 min), avis aux navigateurs NGA (NAVAREA IV), fermetures Highway 4 / plage du comté de Cameron, et licence FAA « à vérifier » avec lien (non publiée en ligne de façon lisible). Sources publiques, sans clé, jamais bloquantes. EN: new pre-launch approvals block (FAA NOTAM, NGA warnings, Highway 4 closures, FAA license link) and `launch_authorizations` sensor.
@@ -383,7 +385,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.29.1**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.29.2**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
