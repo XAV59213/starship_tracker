@@ -38,7 +38,7 @@ Intégration Home Assistant (HACS) qui expose :
 
 - **Rafraîchir** (*Refresh*, `button`, catégorie diagnostic) : force la mise à jour immédiate du live SpaceX et des actualités (utilisable en automatisation via `button.press`).
 
-Version actuelle : **1.29.2**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
+Version actuelle : **1.29.3**. Nécessite Home Assistant **2024.11.0** ou plus récent. Interface traduite en anglais et en français.
 
 ## Installation (HACS)
 
@@ -223,6 +223,8 @@ used directly by Home Assistant for custom integrations.
 
 ## Carte Starship Tracker (custom card)
 
+**1.29.3** : badge « GitHub Stars » ajouté avec les autres badges du README. EN: GitHub Stars badge added to the README.
+
 **1.29.2** : bouton « Discuter sur Forum Domotique » en haut du README. EN: Forum Domotique discussion button added to the README.
 
 **1.29.1** : la section Installation met en avant l’installation directe depuis la recherche HACS (catalogue par défaut), le dépôt personnalisé reste en secours. EN: install section now leads with HACS search (default catalog).
@@ -385,7 +387,7 @@ cards:
 
 ## English
 
-Home Assistant (HACS) integration — **version 1.29.2**, requires Home Assistant **2024.11.0+**, UI in English and French.
+Home Assistant (HACS) integration — **version 1.29.3**, requires Home Assistant **2024.11.0+**, UI in English and French.
 
 ### YouTube channels (1.16.0)
 
